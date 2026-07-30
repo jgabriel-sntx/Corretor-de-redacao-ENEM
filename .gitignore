@@ -1,0 +1,25 @@
+# Ambiente virtual e variáveis locais
+.venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Django
+db.sqlite3
+media/*
+!media/.gitkeep
+staticfiles/
+*.log
+
+# Editores e sistema operacional
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
