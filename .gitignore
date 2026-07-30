@@ -1,6 +1,7 @@
 # Ambiente virtual e variáveis locais
 .venv/
 .env
+credentials/*.json
 
 # Python
 __pycache__/

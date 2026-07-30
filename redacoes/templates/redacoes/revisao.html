@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Revisar redação | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container review-container">
+        <nav aria-label="Etapas do envio" class="mb-4">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'redacoes:inicio' %}">Página inicial</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Revisão</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+            <div>
+                {% if redacao.status == "concluida" %}
+                    <span class="badge rounded-pill text-bg-success mb-2">OCR concluído</span>
+                {% elif redacao.status == "erro" %}
+                    <span class="badge rounded-pill text-bg-danger mb-2">Falha no OCR</span>
+                {% else %}
+                    <span class="badge rounded-pill text-bg-secondary mb-2">Dados salvos</span>
+                {% endif %}
+                <h1 class="display-6 fw-bold mb-2">Revise os dados enviados</h1>
+                <p class="text-secondary mb-0">
+                    Confira abaixo o conteúdo salvo e, quando houver imagem, o texto extraído pelo OCR.
+                </p>
+            </div>
+            <a href="{% url 'redacoes:inicio' %}" class="btn btn-outline-primary flex-shrink-0">
+                Enviar outra redação
+            </a>
+        </div>
+
+        <div class="card review-card border-0 shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-secondary fw-semibold">Tema</dt>
+                    <dd class="col-sm-9 fs-5 fw-semibold">{{ redacao.tema }}</dd>
+
+                    <dt class="col-sm-3 text-secondary fw-semibold">Status</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge text-bg-primary-subtle text-primary-emphasis">{{ redacao.get_status_display }}</span>
+                    </dd>
+
+                    <dt class="col-sm-3 text-secondary fw-semibold">Salva em</dt>
+                    <dd class="col-sm-9">{{ redacao.criada_em|date:"d/m/Y \à\s H:i" }}</dd>
+                </dl>
+
+                {% if redacao.imagem %}
+                    <hr class="my-4">
+                    <section aria-labelledby="imagem-enviada-titulo">
+                        <h2 id="imagem-enviada-titulo" class="h5 fw-bold mb-3">Imagem enviada</h2>
+                        <div class="review-image-wrapper">
+                            <img src="{{ redacao.imagem.url }}" class="img-fluid rounded" alt="Imagem da redação sobre {{ redacao.tema }}">
+                        </div>
+                    </section>
+                {% endif %}
+
+                {% if redacao.texto_original %}
+                    <hr class="my-4">
+                    <section aria-labelledby="texto-enviado-titulo">
+                        <h2 id="texto-enviado-titulo" class="h5 fw-bold mb-3">Texto original</h2>
+                        <div class="original-text rounded p-3 p-md-4">{{ redacao.texto_original|linebreaksbr }}</div>
+                    </section>
+                {% endif %}
+
+                {% if redacao.texto_transcrito %}
+                    <hr class="my-4">
+                    <section aria-labelledby="texto-extraido-titulo">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                            <h2 id="texto-extraido-titulo" class="h5 fw-bold mb-0">Texto extraído</h2>
+                            <span class="badge text-bg-primary-subtle text-primary-emphasis">Google Vision OCR</span>
+                        </div>
+                        <div class="extracted-text rounded p-3 p-md-4">{{ redacao.texto_transcrito|linebreaksbr }}</div>
+                    </section>
+                {% elif redacao.imagem and redacao.status == "concluida" %}
+                    <div class="alert alert-warning mt-4 mb-0" role="status">
+                        Nenhum texto foi reconhecido na imagem enviada.
+                    </div>
+                {% endif %}
+
+                <div class="alert alert-light border d-flex gap-3 mt-4 mb-0" role="note">
+                    <span class="fw-bold text-primary" aria-hidden="true">i</span>
+                    <div>
+                        <strong>Sem correção por IA.</strong>
+                        O texto exibido é somente a transcrição do Google Vision. Gemini e revisão automática não fazem parte deste fluxo.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

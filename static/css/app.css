@@ -40,6 +40,42 @@ body {
     border-radius: 1.25rem;
 }
 
+.review-container {
+    max-width: 960px;
+}
+
+.review-card {
+    border-radius: 1.25rem;
+}
+
+.review-image-wrapper {
+    background: #eef1f7;
+    border: 1px solid var(--app-border);
+    border-radius: 0.85rem;
+    padding: 1rem;
+    text-align: center;
+}
+
+.review-image-wrapper img {
+    max-height: 42rem;
+    object-fit: contain;
+}
+
+.original-text {
+    background: #f9faff;
+    border: 1px solid var(--app-border);
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.extracted-text {
+    background: #f4f7ff;
+    border: 1px solid #cdd8f6;
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+}
+
 .step-number {
     border-radius: 50%;
     font-size: 0.8rem;
