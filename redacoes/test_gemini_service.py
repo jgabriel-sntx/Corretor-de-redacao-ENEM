@@ -79,8 +79,29 @@ class GeminiServiceTests(SimpleTestCase):
             os.environ,
             {"GEMINI_API_KEY": "chave", "GEMINI_MODEL": "gemini-3.6-flash"},
         ):
-            with self.assertRaisesRegex(GeminiAPIError, "cota"):
+            with self.assertRaisesRegex(GeminiAPIError, "cota") as contexto:
                 avaliar_redacao_com_gemini(TEMA, REDACAO)
+
+        self.assertEqual(contexto.exception.codigo, "limite_api")
+        self.assertEqual(contexto.exception.status_http, 429)
+
+    @patch("redacoes.services.gemini_service.genai.Client")
+    def test_erro_de_autenticacao_e_classificado(self, cliente_classe):
+        cliente = Mock()
+        cliente_classe.return_value.__enter__.return_value = cliente
+        cliente.models.generate_content.side_effect = errors.ClientError(
+            403, {"message": "detalhe interno"}
+        )
+
+        with patch.dict(
+            os.environ,
+            {"GEMINI_API_KEY": "chave", "GEMINI_MODEL": "gemini-3.6-flash"},
+        ):
+            with self.assertRaises(GeminiAPIError) as contexto:
+                avaliar_redacao_com_gemini(TEMA, REDACAO)
+
+        self.assertEqual(contexto.exception.codigo, "autenticacao")
+        self.assertNotIn("detalhe interno", str(contexto.exception))
 
     @patch("redacoes.services.gemini_service.genai.Client")
     def test_resposta_vazia_e_rejeitada(self, cliente_classe):
@@ -92,12 +113,16 @@ class GeminiServiceTests(SimpleTestCase):
             os.environ,
             {"GEMINI_API_KEY": "chave", "GEMINI_MODEL": "gemini-3.6-flash"},
         ):
-            with self.assertRaises(GeminiResponseError):
+            with self.assertRaises(GeminiResponseError) as contexto:
                 avaliar_redacao_com_gemini(TEMA, REDACAO)
+
+        self.assertEqual(contexto.exception.codigo, "resposta_invalida")
 
     @patch(
         "redacoes.services.gemini_service.validar_resposta_correcao",
-        side_effect=PromptResponseValidationError("JSON inválido"),
+        side_effect=PromptResponseValidationError(
+            "JSON inválido", codigo="json_invalido"
+        ),
     )
     @patch("redacoes.services.gemini_service.genai.Client")
     def test_resposta_fora_do_contrato_e_rejeitada(
@@ -111,5 +136,7 @@ class GeminiServiceTests(SimpleTestCase):
             os.environ,
             {"GEMINI_API_KEY": "chave", "GEMINI_MODEL": "gemini-3.6-flash"},
         ):
-            with self.assertRaises(GeminiResponseError):
+            with self.assertRaises(GeminiResponseError) as contexto:
                 avaliar_redacao_com_gemini(TEMA, REDACAO)
+
+        self.assertEqual(contexto.exception.codigo, "json_invalido")

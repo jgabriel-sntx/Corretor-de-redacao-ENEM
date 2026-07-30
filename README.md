@@ -1,148 +1,255 @@
 # Corretor de Redações ENEM
 
-Fundação de um protótipo Django para correção de redações do ENEM. Esta etapa contém somente a arquitetura e as configurações iniciais; ainda não há funcionalidades de correção.
+Protótipo Django para receber uma redação digitada ou em imagem, extrair texto com Google Cloud Vision, permitir revisão humana e solicitar ao Gemini uma avaliação estruturada segundo as cinco competências do ENEM.
+
+O resultado é pedagógico e não substitui a correção oficial do Inep.
+
+## Funcionalidades
+
+- envio de tema, texto e/ou imagem;
+- validação de tipo e tamanho da imagem (até 10 MB);
+- OCR com `DOCUMENT_TEXT_DETECTION` do Google Cloud Vision;
+- preservação separada do texto original, OCR e texto revisado;
+- revisão humana antes da avaliação;
+- prompt protegido contra prompt injection e orientado às cinco competências;
+- resposta Gemini em JSON, validada localmente antes de ser salva;
+- mensagens seguras para erros de credenciais, cota, API e resposta;
+- painel administrativo do Django;
+- interface responsiva com Bootstrap 5;
+- suíte com 58 testes e mocks dos serviços externos.
 
 ## Arquitetura
 
-- `config/`: configuração global, URLs e pontos de entrada dos servidores WSGI/ASGI.
-- `redacoes/`: aplicação de domínio que concentrará redações e correções nas próximas etapas.
-- `templates/`: templates compartilhados; `base.html` carrega Bootstrap e define blocos reutilizáveis.
-- `redacoes/templates/redacoes/`: templates específicos da aplicação, isolados por namespace.
-- `static/`: CSS, JavaScript e imagens mantidos pelo projeto.
-- `media/`: arquivos enviados por usuários durante o desenvolvimento.
+O projeto mantém responsabilidades separadas:
 
-SQLite foi escolhido por não exigir um servidor de banco separado e ser adequado ao protótipo. Bootstrap é carregado por CDN para manter a configuração leve, sem adicionar Node.js. Configurações sensíveis e variáveis por ambiente ficam em `.env`, carregadas por `python-dotenv`.
+- **templates e arquivos estáticos:** apresentação e interações locais;
+- **forms:** validação da entrada HTTP;
+- **views:** coordenação do fluxo, mensagens e redirecionamentos;
+- **model:** regras e persistência da redação;
+- **services:** integrações com Vision e Gemini e construção/validação do prompt;
+- **tests:** comportamento das camadas e falhas externas sem consumo real de API.
 
-## Preparação no Windows (PowerShell)
+As views não conhecem detalhes dos SDKs. O Vision recebe uma imagem e devolve texto; o Gemini recebe tema e texto revisado e só devolve um dicionário depois da validação do contrato.
 
-É necessário ter Python 3.12 ou compatível instalado e disponível como `python`.
+## Estrutura do projeto
+
+```text
+Corretor-de-redacao-ENEM/
+├── config/
+│   ├── asgi.py                 # entrada ASGI
+│   ├── settings.py             # configuração Django e ambiente
+│   ├── urls.py                 # rotas globais
+│   └── wsgi.py                 # entrada WSGI
+├── media/
+│   └── .gitkeep                # mantém a pasta de uploads no Git
+├── redacoes/
+│   ├── migrations/
+│   │   └── 0001_initial.py     # schema inicial da redação
+│   ├── services/
+│   │   ├── gemini_service.py   # cliente Gemini e erros seguros
+│   │   ├── prompt_builder.py   # prompt e validação do JSON
+│   │   └── vision_service.py   # OCR com Google Vision
+│   ├── templates/redacoes/
+│   │   ├── inicio.html         # envio da redação
+│   │   └── revisao.html        # revisão da transcrição
+│   ├── admin.py                # painel administrativo
+│   ├── apps.py                 # configuração da aplicação
+│   ├── forms.py                # formulários de envio e revisão
+│   ├── models.py               # entidade Redacao
+│   ├── test_gemini_service.py  # testes isolados do Gemini
+│   ├── test_prompt_builder.py  # testes do prompt e contrato
+│   ├── tests.py                # models, forms, views e Vision
+│   ├── urls.py                 # rotas da aplicação
+│   ├── validators.py           # limite de upload
+│   └── views.py                # fluxo HTTP
+├── static/
+│   ├── css/app.css             # estilos próprios
+│   └── js/redacao-form.js      # prévia e contador local
+├── templates/
+│   └── base.html               # layout, navbar e mensagens
+├── .env.example                # referência de configuração
+├── .gitignore                  # arquivos locais ignorados
+├── manage.py                   # comandos Django
+└── requirements.txt            # dependências fixadas
+```
+
+## Fluxo da aplicação
+
+```mermaid
+flowchart TD
+    A["Página inicial"] --> B["Validar formulário"]
+    B -->|"inválido"| A
+    B -->|"válido"| C["Salvar Redacao"]
+    C --> D{"Possui imagem?"}
+    D -->|"não"| G["Página de revisão"]
+    D -->|"sim"| E["Vision: DOCUMENT_TEXT_DETECTION"]
+    E -->|"sucesso"| F["Salvar texto_transcrito"]
+    E -->|"falha"| X["Marcar status erro"]
+    F --> G
+    X --> G
+    G --> H["Usuário confirma texto revisado"]
+    H --> I["Salvar texto_revisado e limpar resultado antigo"]
+    I --> J["Construir prompt e chamar Gemini"]
+    J --> K{"JSON aprovado?"}
+    K -->|"sim"| L["Salvar resultado_json"]
+    K -->|"não/API falhou"| M["Preservar revisão e exibir erro seguro"]
+    L --> G
+    M --> G
+```
+
+## Modelo `Redacao`
+
+- `tema`: proposta da redação, entre 5 e 255 caracteres;
+- `imagem`: upload opcional armazenado por ano e mês;
+- `texto_original`: conteúdo digitado no envio;
+- `texto_transcrito`: retorno bruto e imutável do OCR;
+- `texto_revisado`: versão confirmada pelo usuário;
+- `resultado_json`: avaliação estruturada validada;
+- `status`: `enviada`, `processando`, `concluida` ou `erro`;
+- `criada_em` e `atualizada_em`: auditoria temporal automática.
+
+É obrigatório informar imagem ou texto original.
+
+## Instalação local
+
+Requer Python 3.11 ou superior e acesso opcional às APIs Google para executar o fluxo completo.
+
+No PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 Copy-Item .env.example .env
 python manage.py migrate
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Antes de usar fora do ambiente local, substitua `DJANGO_SECRET_KEY` no `.env` e desative `DJANGO_DEBUG`.
+Acesse:
 
-Acesse `http://127.0.0.1:8000/`. O painel administrativo está configurado em `http://127.0.0.1:8000/admin/`.
+- aplicação: `http://127.0.0.1:8000/`
+- administração: `http://127.0.0.1:8000/admin/`
 
-## Camada de dados
+## Configuração do ambiente
 
-O modelo `Redacao` representa a entrada original e reserva campos para os resultados das futuras etapas de processamento:
-
-- `tema`: título ou assunto da proposta, com no mínimo 5 e no máximo 255 caracteres.
-- `imagem`: imagem opcional da redação, armazenada por ano e mês e limitada a 10 MB.
-- `texto_original`: texto fornecido diretamente pelo usuário, antes de qualquer processamento.
-- `texto_transcrito`: texto extraído da imagem pelo Google Cloud Vision.
-- `texto_revisado`: versão da transcrição confirmada manualmente pelo usuário.
-- `resultado_json`: estrutura flexível para futuros resultados detalhados, iniciada como objeto vazio.
-- `status`: estado do fluxo (`enviada`, `processando`, `concluida` ou `erro`).
-- `criada_em`: data e hora de criação, preenchidas automaticamente.
-- `atualizada_em`: data e hora da última alteração, atualizadas automaticamente.
-
-Uma redação precisa conter uma imagem, um texto original ou ambos. O formulário inicial expõe apenas os campos de entrada; a transcrição é exibida na página de revisão.
-
-## Interface
-
-A página inicial usa Bootstrap 5 e concentra orientação e envio em uma única tela responsiva. Em telas grandes, instruções e formulário ficam lado a lado; em celulares, os blocos são empilhados para preservar legibilidade e áreas de toque.
-
-O formulário aceita imagem, texto ou ambos. A pré-visualização ocorre localmente; depois do envio, imagens válidas passam pelo OCR. Após o processamento, a aplicação redireciona para a página de revisão; entradas inválidas permanecem preenchidas e apresentam os erros junto aos campos. O contador do textarea é apenas uma ajuda visual e não altera o conteúdo.
-
-## Fluxo atual
-
-1. A página inicial (`/`) exibe o formulário de envio.
-2. Um envio válido cria a redação no SQLite.
-3. Quando existe imagem, o serviço chama `DOCUMENT_TEXT_DETECTION` e salva o resultado em `texto_transcrito`.
-4. O navegador é redirecionado para `/redacoes/<id>/revisao/`.
-5. A revisão apresenta a imagem, o texto OCR somente para leitura e uma cópia editável.
-6. `Confirmar texto` salva a versão humana em `texto_revisado` e preserva `texto_transcrito`.
-
-Um envio inválido não cria registro nem redireciona; a página inicial reapresenta o formulário com as mensagens de validação. A revisão permite editar somente `texto_revisado` e retorna 404 para IDs inexistentes. A avaliação do Gemini ocorre apenas depois da confirmação humana.
-
-## Revisão da transcrição
-
-A revisão coloca imagem e OCR ao lado do campo editável em telas grandes e empilha os blocos em telas menores. O OCR é exibido como referência imutável; o textarea começa com `texto_revisado` quando já existe ou, na primeira visita, com uma cópia de `texto_transcrito`.
-
-O botão `Confirmar texto` exige conteúdo não vazio, atualiza `texto_revisado` e usa POST–Redirect–GET. Assim, atualizar a página não repete o envio, correções confirmadas reaparecem no textarea e o resultado bruto do OCR continua disponível para auditoria. Depois de salvar, a view chama o serviço Gemini; não há nova chamada ao Vision.
-
-## Google Cloud Vision OCR
-
-O acesso à API fica isolado em `redacoes/services/vision_service.py`. A view não importa classes do cliente Google nem monta requisições: ela apenas chama `extrair_texto_documento()` e persiste o resultado.
-
-### Autenticação
-
-1. Crie ou selecione um projeto no Google Cloud, habilite faturamento e ative a Cloud Vision API.
-2. Em desenvolvimento, prefira Application Default Credentials (ADC) com `gcloud auth application-default login`.
-3. Em produção no Google Cloud, associe uma conta de serviço ao recurso de execução.
-4. Se uma chave JSON for indispensável, salve-a fora do Git e indique seu caminho em `GOOGLE_APPLICATION_CREDENTIALS` no `.env`.
-
-Exemplo:
+Edite `.env`:
 
 ```env
+DJANGO_SECRET_KEY=gere-uma-chave-longa-e-exclusiva
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+DJANGO_CSRF_TRUSTED_ORIGINS=
+
 GOOGLE_APPLICATION_CREDENTIALS=credentials/google-vision.json
-```
-
-ADC procura primeiro essa variável, depois as credenciais locais criadas pelo `gcloud` e, por fim, uma conta de serviço associada ao ambiente. Chaves JSON de contas de serviço exigem proteção e rotação; identidades associadas ou federadas são preferíveis. Consulte a [documentação oficial de autenticação](https://docs.cloud.google.com/docs/authentication/application-default-credentials).
-
-### Tratamento de erros
-
-- Credenciais ausentes ou inválidas geram um erro específico de autenticação.
-- Cota esgotada gera um erro específico de limite de uso.
-- Falhas de transporte, indisponibilidade e tentativas esgotadas recebem uma mensagem genérica e segura.
-- Cada chamada possui timeout de 30 segundos para não bloquear indefinidamente a requisição web.
-- Erros retornados dentro da resposta do Vision são registrados no servidor, sem expor detalhes internos na tela.
-- Falha de OCR preserva a redação e muda seu status para `erro`.
-- Uma resposta válida sem texto não é exceção: o status fica `concluida` e a interface informa que nada foi reconhecido.
-
-### Limites
-
-O projeto restringe uploads a 10 MB. A Cloud Vision documenta limite de 20 MB por arquivo de imagem e 10 MB para o objeto JSON; imagens codificadas podem crescer aproximadamente 37%. As cotas padrão documentadas incluem 1.800 requisições por minuto e 1.800 detecções de texto por minuto, compartilhadas no projeto e sujeitas a alteração ou ajuste. Cada chamada também pode gerar cobrança. Consulte sempre a [página atual de cotas e limites](https://docs.cloud.google.com/vision/quotas) e o painel do projeto.
-
-## Construção do prompt de avaliação
-
-`redacoes/services/prompt_builder.py` apenas constrói e valida o contrato textual de uma futura avaliação. O módulo não importa SDK de IA, não escolhe modelo e não realiza chamadas externas.
-
-O prompt foi dividido em seções com responsabilidades explícitas:
-
-- **Hierarquia e papel:** limita a IA a uma avaliação pedagógica e impede que se apresente como corretor oficial do Inep.
-- **Contexto:** define o gênero dissertativo-argumentativo e o objetivo da tarefa, reduzindo interpretações ambíguas.
-- **Competências e escala:** fixa as cinco competências e somente os níveis 0, 40, 80, 120, 160 e 200, conforme a [Cartilha do Participante do Enem 2025](https://www.gov.br/inep/pt-br/centrais-de-conteudo/acervo-linha-editorial/publicacoes-institucionais/avaliacoes-e-exames-da-educacao-basica/redacao-do-enem-2025-cartilha-do-a-participante).
-- **Situações de nota zero:** exige distinção entre o que o texto permite observar e o que depende de imagem, linhas oficiais ou textos motivadores ausentes.
-- **Anti-alucinação:** obriga citações literais, listas vazias quando não há evidência e declaração explícita de limitações.
-- **Proteção contra prompt injection:** serializa tema e redação como dados não confiáveis e proíbe obedecer a comandos encontrados dentro deles.
-- **Contrato JSON:** define chaves, tipos, enumerações, cinco competências, decomposição da intervenção e ausência de texto fora do JSON.
-- **Autoverificação:** pede uma checagem silenciosa de estrutura, notas, soma e evidências antes da resposta.
-- **Validação local:** rejeita Markdown, JSON inválido, chaves extras, schema incompatível, quantidade ou ordem errada de competências, notas fora da escala, soma incorreta e citações inexistentes.
-
-`construir_prompt_correcao(tema, redacao)` limita e normaliza as entradas antes de montar o prompt. `validar_resposta_correcao(resposta, redacao_original)` devolve um dicionário somente quando a resposta cumpre o contrato. Quando a redação não puder ser avaliada com responsabilidade, o contrato exige notas nulas, total nulo e justificativa de impedimento; isso evita fabricar precisão.
-
-## Serviço Gemini
-
-`redacoes/services/gemini_service.py` é a única camada que importa `google-genai`. Sua função pública `avaliar_redacao_com_gemini(tema, redacao)` lê `GEMINI_API_KEY` e `GEMINI_MODEL`, constrói o prompt, envia a solicitação, recebe o texto, converte o JSON pelo validador local e devolve somente um dicionário aprovado.
-
-Configuração local:
-
-```env
-GEMINI_API_KEY=troque-pela-chave-do-gemini
+GEMINI_API_KEY=sua-chave
 GEMINI_MODEL=gemini-3.6-flash
 ```
 
-A chave é lida no momento da chamada, nunca registrada e permanece no `.env`, que não entra no Git. O modelo também vem do ambiente para permitir troca sem alteração de código; `gemini-3.6-flash` é apenas o padrão estável atual. O serviço rejeita modelos com caracteres inesperados.
+O `.env` e os JSONs em `credentials/` são ignorados pelo Git.
 
-A geração usa temperatura zero, uma única candidata, até 16.384 tokens de saída, MIME `application/json` e timeout de 60 segundos. Não é enviado um segundo schema pela configuração do SDK porque o contrato já está no prompt; a resposta ainda passa pelo validador estrito, que é a autoridade final.
+### Google Cloud Vision
 
-Erros são separados em configuração, entrada, API e resposta. Códigos 401/403 indicam chave ou permissão, 404 indica modelo, 429 indica cota, e os demais recebem mensagem genérica. Respostas vazias, não textuais, JSON inválido ou estrutura incompatível são rejeitadas. Prompt, redação, chave e resposta bruta não são gravados nos logs.
+1. Crie ou selecione um projeto Google Cloud.
+2. Habilite a Cloud Vision API e o faturamento.
+3. Conceda à identidade apenas a permissão necessária para usar a API.
+4. Prefira Application Default Credentials ou identidade associada ao ambiente.
+5. Em desenvolvimento, se usar um JSON, mantenha-o fora do Git e informe o caminho em `GOOGLE_APPLICATION_CREDENTIALS`.
 
-A view apenas chama `avaliar_redacao_com_gemini()` e persiste o dicionário retornado em `resultado_json`. O texto revisado é salvo antes da rede; se a API falhar, ele permanece salvo. Qualquer avaliação anterior é limpa antes da nova chamada, evitando associar uma nota antiga a um texto alterado. A chamada é síncrona neste protótipo; para maior volume, o próximo passo arquitetural seria uma fila de tarefas, fora do escopo atual.
+### Gemini
 
-## Comandos úteis
+Configure `GEMINI_API_KEY`. O modelo é lido de `GEMINI_MODEL`, permitindo troca sem alteração no código. O serviço usa JSON, temperatura zero, uma candidata e timeout de 60 segundos.
+
+## Validação da avaliação
+
+Uma resposta externa só é persistida quando cumpre todo o contrato:
+
+- JSON parseável e sem Markdown;
+- conjunto exato de campos e versão de schema compatível;
+- exatamente cinco competências, na ordem e com nomes esperados;
+- notas somente em `0`, `40`, `80`, `120`, `160` ou `200`;
+- total igual à soma das cinco notas;
+- competência 5 igual a zero quando há desrespeito aos direitos humanos;
+- citações existentes literalmente no texto revisado;
+- campos obrigatórios, tipos e enumerações válidos;
+- avaliação impossível com motivo, notas nulas e total nulo.
+
+Os erros têm código estável e caminho do campo quando aplicável. A resposta bruta, a redação e as credenciais não são gravadas em logs.
+
+## Testes
+
+Os SDKs externos são substituídos por mocks. Portanto, os testes não consomem cota nem dependem de rede ou credenciais.
 
 ```powershell
-python manage.py check
 python manage.py test
-python manage.py collectstatic --noinput
+python manage.py check
+python manage.py makemigrations --check --dry-run
 ```
+
+A cobertura inclui models, formulários, views, OCR, Gemini, prompt, validações, mensagens, redirecionamentos e cenários de erro.
+
+## Decisões da refatoração
+
+- as views usam retornos antecipados e funções privadas para reduzir aninhamento;
+- processamento de OCR e avaliação ficaram em rotinas distintas;
+- a revisão é salva antes da API, evitando perda do trabalho humano;
+- resultados antigos são limpos antes de avaliar texto alterado;
+- leitura de booleanos e listas do ambiente foi centralizada;
+- CSS sem uso foi removido;
+- URLs temporárias da pré-visualização são liberadas pelo navegador;
+- SDKs continuam isolados em `services/`;
+- nenhuma alteração de banco foi necessária.
+
+## Checklist para produção
+
+### Django e segurança
+
+- [ ] gerar `DJANGO_SECRET_KEY` forte e exclusiva;
+- [ ] definir `DJANGO_DEBUG=False`;
+- [ ] preencher `DJANGO_ALLOWED_HOSTS` com os domínios reais;
+- [ ] preencher `DJANGO_CSRF_TRUSTED_ORIGINS` com origens HTTPS;
+- [ ] ativar `DJANGO_SECURE_SSL_REDIRECT=True` atrás de HTTPS;
+- [ ] ativar cookies seguros de sessão e CSRF;
+- [ ] ativar HSTS gradualmente, depois avaliar subdomínios e preload;
+- [ ] executar `python manage.py check --deploy` no ambiente final;
+- [ ] proteger `/admin/`, usar senhas fortes e restringir operadores.
+
+### Infraestrutura e dados
+
+- [ ] substituir `runserver` por servidor WSGI/ASGI de produção;
+- [ ] usar proxy reverso com TLS e cabeçalhos corretos;
+- [ ] avaliar PostgreSQL em vez de SQLite para concorrência e escala;
+- [ ] armazenar mídia em serviço persistente e privado;
+- [ ] servir estáticos após `collectstatic` por CDN ou servidor web;
+- [ ] configurar backup, restauração testada e política de retenção;
+- [ ] definir limites de corpo também no proxy reverso;
+- [ ] aplicar migrations como etapa controlada do deploy.
+
+### APIs e tarefas
+
+- [ ] usar identidade gerenciada para o Vision quando disponível;
+- [ ] guardar segredos em cofre, nunca em arquivo no servidor;
+- [ ] aplicar menor privilégio, rotação e alertas de cota;
+- [ ] revisar modelo Gemini disponível e limites antes do deploy;
+- [ ] mover OCR e avaliação para fila assíncrona em maior volume;
+- [ ] definir retentativas com backoff e idempotência;
+- [ ] monitorar latência, taxa de erros e custo por serviço.
+
+### Privacidade, observabilidade e qualidade
+
+- [ ] definir base legal, consentimento, retenção e exclusão das redações;
+- [ ] evitar texto de redação, imagens e chaves em logs;
+- [ ] configurar logs estruturados e rastreamento sem dados sensíveis;
+- [ ] disponibilizar política de privacidade e canal de suporte;
+- [ ] executar testes e verificações em CI a cada mudança;
+- [ ] testar acessibilidade, dispositivos móveis e navegadores suportados;
+- [ ] documentar plano de incidentes e indisponibilidade das APIs.
+
+## Limitações atuais
+
+- chamadas externas são síncronas;
+- SQLite é adequado ao protótipo, não ao alto volume;
+- não há autenticação para usuários finais;
+- não há fila, painel de progresso ou retentativa automática;
+- a avaliação é uma simulação pedagógica, sujeita às limitações do modelo.

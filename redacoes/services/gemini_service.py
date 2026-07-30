@@ -37,9 +37,18 @@ class GeminiInputError(GeminiServiceError):
 class GeminiAPIError(GeminiServiceError):
     """Falha de comunicação ou rejeição pela API."""
 
+    def __init__(self, mensagem: str, *, codigo: str, status_http: int | None) -> None:
+        super().__init__(mensagem)
+        self.codigo = codigo
+        self.status_http = status_http
+
 
 class GeminiResponseError(GeminiServiceError):
     """Resposta vazia, inválida ou fora do contrato JSON."""
+
+    def __init__(self, mensagem: str, *, codigo: str = "resposta_invalida") -> None:
+        super().__init__(mensagem)
+        self.codigo = codigo
 
 
 def avaliar_redacao_com_gemini(tema: str, redacao: str) -> dict[str, Any]:
@@ -71,7 +80,10 @@ def avaliar_redacao_com_gemini(tema: str, redacao: str) -> dict[str, Any]:
     except errors.APIError as erro:
         codigo = getattr(erro, "code", None)
         logger.warning("Gemini API falhou com código %s.", codigo)
-        raise GeminiAPIError(_mensagem_api(codigo)) from erro
+        categoria, mensagem = _classificar_erro_api(codigo)
+        raise GeminiAPIError(
+            mensagem, codigo=categoria, status_http=codigo
+        ) from erro
 
     try:
         texto_resposta = resposta.text
@@ -88,7 +100,8 @@ def avaliar_redacao_com_gemini(tema: str, redacao: str) -> dict[str, Any]:
     except PromptResponseValidationError as erro:
         logger.warning("Resposta do Gemini rejeitada pelo contrato local.")
         raise GeminiResponseError(
-            "A resposta do Gemini não corresponde ao formato esperado."
+            "A resposta do Gemini não corresponde ao formato esperado.",
+            codigo=erro.codigo,
         ) from erro
 
 
@@ -106,11 +119,11 @@ def _ler_configuracao() -> tuple[str, str]:
     return chave_api, modelo
 
 
-def _mensagem_api(codigo: int | None) -> str:
+def _classificar_erro_api(codigo: int | None) -> tuple[str, str]:
     if codigo in {401, 403}:
-        return "A chave do Gemini foi recusada ou não possui permissão."
+        return "autenticacao", "A chave do Gemini foi recusada ou não possui permissão."
     if codigo == 404:
-        return "O modelo Gemini configurado não foi encontrado."
+        return "modelo_indisponivel", "O modelo Gemini configurado não foi encontrado."
     if codigo == 429:
-        return "A cota do Gemini foi atingida. Tente novamente mais tarde."
-    return "Não foi possível acessar o Gemini. Tente novamente mais tarde."
+        return "limite_api", "A cota do Gemini foi atingida. Tente novamente mais tarde."
+    return "erro_api", "Não foi possível acessar o Gemini. Tente novamente mais tarde."

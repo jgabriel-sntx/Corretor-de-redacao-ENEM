@@ -111,6 +111,14 @@ class PromptBuilderTests(SimpleTestCase):
 
 
 class PromptResponseValidatorTests(SimpleTestCase):
+    def assertCodigoErro(self, dados, codigo):
+        with self.assertRaises(PromptResponseValidationError) as contexto:
+            validar_resposta_correcao(
+                dados if isinstance(dados, str) else json.dumps(dados),
+                REDACAO_EXEMPLO,
+            )
+        self.assertEqual(contexto.exception.codigo, codigo)
+
     def test_resposta_valida_e_convertida_em_dict(self):
         resposta = json.dumps(resposta_valida(), ensure_ascii=False)
 
@@ -129,15 +137,13 @@ class PromptResponseValidatorTests(SimpleTestCase):
         dados = resposta_valida()
         dados["competencias"][0]["nota"] = 150
 
-        with self.assertRaises(PromptResponseValidationError):
-            validar_resposta_correcao(json.dumps(dados), REDACAO_EXEMPLO)
+        self.assertCodigoErro(dados, "nota_invalida")
 
     def test_soma_incorreta_e_rejeitada(self):
         dados = resposta_valida()
         dados["nota_total"] = 1000
 
-        with self.assertRaises(PromptResponseValidationError):
-            validar_resposta_correcao(json.dumps(dados), REDACAO_EXEMPLO)
+        self.assertCodigoErro(dados, "soma_incorreta")
 
     def test_citacao_inventada_e_rejeitada(self):
         dados = resposta_valida()
@@ -145,8 +151,38 @@ class PromptResponseValidatorTests(SimpleTestCase):
             "Trecho que nunca foi escrito."
         )
 
-        with self.assertRaises(PromptResponseValidationError):
+        self.assertCodigoErro(dados, "trecho_inexistente")
+
+    def test_json_malformado_e_identificado(self):
+        self.assertCodigoErro('{"competencias":', "json_invalido")
+
+    def test_resposta_incompleta_informa_campo_ausente(self):
+        dados = resposta_valida()
+        del dados["diagnostico_geral"]
+
+        with self.assertRaises(PromptResponseValidationError) as contexto:
             validar_resposta_correcao(json.dumps(dados), REDACAO_EXEMPLO)
+
+        self.assertEqual(contexto.exception.codigo, "resposta_incompleta")
+        self.assertIn("diagnostico_geral", str(contexto.exception))
+
+    def test_exige_exatamente_cinco_competencias(self):
+        dados = resposta_valida()
+        dados["competencias"].pop()
+
+        self.assertCodigoErro(dados, "competencias_invalidas")
+
+    def test_competencias_devem_estar_numeradas_e_nomeadas_corretamente(self):
+        dados = resposta_valida()
+        dados["competencias"][1]["numero"] = 1
+
+        self.assertCodigoErro(dados, "competencias_invalidas")
+
+    def test_desrespeito_a_direitos_humanos_zerara_competencia_cinco(self):
+        dados = resposta_valida()
+        dados["proposta_intervencao"]["respeita_direitos_humanos"] = False
+
+        self.assertCodigoErro(dados, "nota_invalida")
 
     def test_chave_extra_e_rejeitada(self):
         dados = resposta_valida()

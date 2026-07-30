@@ -5,6 +5,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const removeImageButton = document.querySelector("#remove-image");
     const textArea = document.querySelector("#id_texto_original");
     const characterCount = document.querySelector("#character-count");
+    let previewUrl = null;
+
+    const revokePreviewUrl = () => {
+        if (!previewUrl) return;
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+    };
 
     const updateCharacterCount = () => {
         if (!textArea || !characterCount) return;
@@ -14,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const clearPreview = () => {
         if (!imageInput || !previewContainer || !previewImage) return;
+        revokePreviewUrl();
         imageInput.value = "";
         previewImage.removeAttribute("src");
         previewContainer.classList.add("d-none");
@@ -26,11 +34,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        previewImage.src = URL.createObjectURL(file);
+        revokePreviewUrl();
+        previewUrl = URL.createObjectURL(file);
+        previewImage.src = previewUrl;
         previewContainer.classList.remove("d-none");
     });
 
     removeImageButton?.addEventListener("click", clearPreview);
     textArea?.addEventListener("input", updateCharacterCount);
+    window.addEventListener("pagehide", revokePreviewUrl);
     updateCharacterCount();
 });

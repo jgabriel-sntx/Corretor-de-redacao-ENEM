@@ -1,14 +1,18 @@
 from io import BytesIO
+from datetime import timedelta
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from google.api_core.exceptions import ResourceExhausted
+from google.api_core.exceptions import GoogleAPICallError, ResourceExhausted
 from google.auth.exceptions import DefaultCredentialsError
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 from PIL import Image
 
+from .forms import RedacaoForm, RevisaoTranscricaoForm
 from .models import Redacao
 from .services.gemini_service import GeminiServiceError
 from .services.vision_service import (
@@ -17,6 +21,7 @@ from .services.vision_service import (
     VisionServiceError,
     extrair_texto_documento,
 )
+from .validators import TAMANHO_MAXIMO_IMAGEM, validar_tamanho_imagem
 
 
 def criar_imagem_png():
@@ -27,6 +32,110 @@ def criar_imagem_png():
         conteudo.getvalue(),
         content_type="image/png",
     )
+
+
+class RedacaoModelTests(TestCase):
+    def test_valores_padrao_e_representacao(self):
+        redacao = Redacao.objects.create(
+            tema="Tema para redação",
+            texto_original="Conteúdo suficiente.",
+        )
+
+        self.assertEqual(redacao.status, Redacao.Status.ENVIADA)
+        self.assertEqual(redacao.resultado_json, {})
+        self.assertEqual(str(redacao), "Tema para redação")
+        self.assertIsNotNone(redacao.criada_em)
+        self.assertIsNotNone(redacao.atualizada_em)
+
+    def test_clean_remove_espacos_de_tema_e_texto(self):
+        redacao = Redacao(
+            tema="  Tema normalizado  ",
+            texto_original="  Texto normalizado.  ",
+        )
+
+        redacao.full_clean()
+
+        self.assertEqual(redacao.tema, "Tema normalizado")
+        self.assertEqual(redacao.texto_original, "Texto normalizado.")
+
+    def test_exige_imagem_ou_texto_original(self):
+        redacao = Redacao(tema="Tema sem conteúdo")
+
+        with self.assertRaises(ValidationError) as contexto:
+            redacao.full_clean()
+
+        self.assertIn("Informe uma imagem", str(contexto.exception))
+
+    def test_tema_respeita_tamanho_minimo(self):
+        redacao = Redacao(tema="abc", texto_original="Texto presente.")
+
+        with self.assertRaises(ValidationError) as contexto:
+            redacao.full_clean()
+
+        self.assertIn("tema", contexto.exception.message_dict)
+
+    def test_ordenacao_padrao_exibe_mais_recente_primeiro(self):
+        antiga = Redacao.objects.create(tema="Tema antigo", texto_original="Texto.")
+        recente = Redacao.objects.create(tema="Tema recente", texto_original="Texto.")
+        agora = timezone.now()
+        Redacao.objects.filter(pk=antiga.pk).update(criada_em=agora - timedelta(days=1))
+        Redacao.objects.filter(pk=recente.pk).update(criada_em=agora)
+
+        self.assertEqual(list(Redacao.objects.all()), [recente, antiga])
+
+
+class RedacaoFormTests(TestCase):
+    def test_formulario_aceita_envio_apenas_com_texto(self):
+        form = RedacaoForm(
+            data={"tema": "Tema válido", "texto_original": "  Redação digitada.  "}
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        redacao = form.save()
+        self.assertEqual(redacao.texto_original, "Redação digitada.")
+
+    def test_formulario_aceita_envio_apenas_com_imagem(self):
+        form = RedacaoForm(
+            data={"tema": "Tema por imagem"},
+            files={"imagem": criar_imagem_png()},
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_formulario_rejeita_ausencia_de_imagem_e_texto(self):
+        form = RedacaoForm(data={"tema": "Tema incompleto"})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
+
+    def test_formulario_rejeita_arquivo_que_nao_e_imagem(self):
+        arquivo = SimpleUploadedFile("arquivo.txt", b"texto", content_type="text/plain")
+        form = RedacaoForm(data={"tema": "Tema válido"}, files={"imagem": arquivo})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("imagem", form.errors)
+
+    def test_validador_rejeita_imagem_acima_de_dez_megabytes(self):
+        arquivo = Mock(size=TAMANHO_MAXIMO_IMAGEM + 1)
+
+        with self.assertRaisesRegex(ValidationError, "10 MB"):
+            validar_tamanho_imagem(arquivo)
+
+    def test_formulario_revisao_remove_espacos_e_exige_texto(self):
+        redacao = Redacao.objects.create(
+            tema="Tema em revisão", texto_original="Texto original."
+        )
+        valido = RevisaoTranscricaoForm(
+            data={"texto_revisado": "  Texto revisto.  "}, instance=redacao
+        )
+        vazio = RevisaoTranscricaoForm(
+            data={"texto_revisado": "   "}, instance=redacao
+        )
+
+        self.assertTrue(valido.is_valid(), valido.errors)
+        self.assertEqual(valido.cleaned_data["texto_revisado"], "Texto revisto.")
+        self.assertFalse(vazio.is_valid())
+        self.assertIn("texto_revisado", vazio.errors)
 
 
 class PaginaInicialTests(TestCase):
@@ -59,6 +168,18 @@ class PaginaInicialTests(TestCase):
             reverse("redacoes:revisao", kwargs={"pk": redacao.pk}),
             fetch_redirect_response=False,
         )
+
+    @patch("redacoes.views.extrair_texto_documento")
+    def test_envio_por_texto_nao_chama_google_vision(self, mock_ocr):
+        self.client.post(
+            self.url,
+            {"tema": "Tema somente texto", "texto_original": "Texto digitado."},
+        )
+
+        mock_ocr.assert_not_called()
+
+    def test_metodo_http_nao_permitido_retorna_405(self):
+        self.assertEqual(self.client.put(self.url).status_code, 405)
 
     def test_envio_invalido_exibe_erros_e_nao_salva(self):
         response = self.client.post(self.url, {"tema": "Tema sem conteúdo"})
@@ -227,6 +348,15 @@ class PaginaRevisaoTests(TestCase):
         self.assertEqual(self.redacao.texto_revisado, "")
         self.assertContains(response, "Revise e confirme um texto não vazio")
 
+    @patch("redacoes.views.avaliar_redacao_com_gemini")
+    def test_texto_invalido_nao_chama_gemini(self, mock_gemini):
+        self.client.post(self.url, {"texto_revisado": "   "})
+
+        mock_gemini.assert_not_called()
+
+    def test_metodo_http_nao_permitido_retorna_405(self):
+        self.assertEqual(self.client.delete(self.url).status_code, 405)
+
     def test_revisao_inexistente_retorna_404(self):
         response = self.client.get(
             reverse("redacoes:revisao", kwargs={"pk": 999999})
@@ -264,7 +394,26 @@ class VisionServiceTests(TestCase):
         )
 
         cliente_mock.return_value.document_text_detection.assert_called_once()
+        chamada = cliente_mock.return_value.document_text_detection.call_args
+        self.assertEqual(chamada.kwargs["timeout"], 30)
+        self.assertEqual(chamada.kwargs["image"].content, b"conteudo-da-imagem")
         self.assertEqual(texto, "Primeira linha.\nSegunda linha.")
+
+    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
+    def test_documento_sem_texto_retorna_string_vazia(self, cliente_mock):
+        resposta = cliente_mock.return_value.document_text_detection.return_value
+        resposta.error.message = ""
+        resposta.full_text_annotation.text = "   "
+
+        texto = extrair_texto_documento(
+            SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
+        )
+
+        self.assertEqual(texto, "")
+
+    def test_imagem_ausente_e_rejeitada_antes_do_cliente(self):
+        with self.assertRaisesRegex(ValueError, "imagem"):
+            extrair_texto_documento(None)
 
     @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
     def test_erro_retornado_pela_api_e_convertido(self, cliente_mock):
@@ -296,3 +445,16 @@ class VisionServiceTests(TestCase):
             extrair_texto_documento(
                 SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
             )
+
+    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
+    def test_falha_generica_da_api_recebe_mensagem_segura(self, cliente_mock):
+        cliente_mock.return_value.document_text_detection.side_effect = (
+            GoogleAPICallError("detalhe interno")
+        )
+
+        with self.assertRaises(VisionServiceError) as contexto:
+            extrair_texto_documento(
+                SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
+            )
+
+        self.assertNotIn("detalhe interno", str(contexto.exception))
