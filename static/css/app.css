@@ -76,6 +76,31 @@ body {
     overflow-wrap: anywhere;
 }
 
+.ocr-source-text,
+.empty-review-state {
+    background: #f8f9fc;
+    border: 1px solid var(--app-border);
+}
+
+.ocr-source-text {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    max-height: 24rem;
+    overflow: auto;
+    overflow-wrap: anywhere;
+}
+
+.review-textarea {
+    line-height: 1.75;
+    min-height: 32rem !important;
+}
+
+@media (max-width: 991.98px) {
+    .review-textarea {
+        min-height: 22rem !important;
+    }
+}
+
 .step-number {
     border-radius: 50%;
     font-size: 0.8rem;

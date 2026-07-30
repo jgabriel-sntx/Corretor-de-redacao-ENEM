@@ -10,6 +10,7 @@ from django.urls import reverse
 from PIL import Image
 
 from .models import Redacao
+from .services.gemini_service import GeminiServiceError
 from .services.vision_service import (
     VisionCredentialsError,
     VisionQuotaError,
@@ -134,20 +135,97 @@ class PaginaRevisaoTests(TestCase):
     def setUp(self):
         self.redacao = Redacao.objects.create(
             tema="Desafios da educação brasileira",
-            texto_original="Primeiro parágrafo.\n\nSegundo parágrafo.",
+            imagem="redacoes/2026/07/redacao-teste.png",
+            texto_transcrito="Primeiro parágrafo do OCR.\n\nSegundo parágrafo.",
+            status=Redacao.Status.CONCLUIDA,
         )
         self.url = reverse("redacoes:revisao", kwargs={"pk": self.redacao.pk})
 
-    def test_revisao_exibe_dados_salvos_sem_processamento(self):
+    def test_revisao_exibe_imagem_ocr_textarea_e_botao(self):
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.redacao.tema)
-        self.assertContains(response, "Primeiro parágrafo")
-        self.assertContains(response, "Enviada")
-        self.assertContains(response, "Sem correção por IA")
-        self.assertNotContains(response, "texto_transcrito")
-        self.assertNotContains(response, "resultado_json")
+        self.assertContains(response, self.redacao.imagem.url)
+        self.assertContains(response, "Primeiro parágrafo do OCR")
+        self.assertContains(response, 'name="texto_revisado"')
+        self.assertContains(response, "Confirmar texto")
+        self.assertContains(response, self.redacao.texto_transcrito)
+
+    def test_get_inicializa_textarea_com_texto_ocr(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(
+            response.context["form"].initial["texto_revisado"],
+            self.redacao.texto_transcrito,
+        )
+
+    @patch(
+        "redacoes.views.avaliar_redacao_com_gemini",
+        return_value={"schema_version": "1.0", "nota_total": 800},
+    )
+    def test_confirmar_salva_texto_revisado_sem_alterar_ocr(self, mock_gemini):
+        texto_ocr_original = self.redacao.texto_transcrito
+        texto_corrigido = "Primeiro parágrafo corrigido.\n\nSegundo parágrafo."
+
+        response = self.client.post(
+            self.url,
+            {"texto_revisado": texto_corrigido},
+        )
+
+        self.redacao.refresh_from_db()
+        self.assertEqual(self.redacao.texto_revisado, texto_corrigido)
+        self.assertEqual(self.redacao.texto_transcrito, texto_ocr_original)
+        self.assertEqual(self.redacao.resultado_json["nota_total"], 800)
+        mock_gemini.assert_called_once_with(self.redacao.tema, texto_corrigido)
+        self.assertRedirects(
+            response,
+            self.url,
+            fetch_redirect_response=False,
+        )
+
+    @patch(
+        "redacoes.views.avaliar_redacao_com_gemini",
+        return_value={"schema_version": "1.0"},
+    )
+    def test_confirmacao_exibe_mensagem_apos_redirect(self, mock_gemini):
+        response = self.client.post(
+            self.url,
+            {"texto_revisado": "Transcrição confirmada."},
+            follow=True,
+        )
+
+        self.assertRedirects(response, self.url)
+        self.assertContains(response, "avaliação estruturada concluída")
+
+    @patch(
+        "redacoes.views.avaliar_redacao_com_gemini",
+        side_effect=GeminiServiceError("Falha controlada do Gemini."),
+    )
+    def test_falha_do_gemini_preserva_revisao_e_limpa_resultado_antigo(
+        self, mock_gemini
+    ):
+        self.redacao.resultado_json = {"nota_total": 1000}
+        self.redacao.save(update_fields=["resultado_json"])
+
+        response = self.client.post(
+            self.url,
+            {"texto_revisado": "Texto humano confirmado."},
+            follow=True,
+        )
+
+        self.redacao.refresh_from_db()
+        self.assertEqual(self.redacao.texto_revisado, "Texto humano confirmado.")
+        self.assertEqual(self.redacao.resultado_json, {})
+        self.assertContains(response, "Falha controlada do Gemini")
+
+    def test_texto_revisado_vazio_nao_e_salvo(self):
+        response = self.client.post(self.url, {"texto_revisado": "   "})
+
+        self.redacao.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.redacao.texto_revisado, "")
+        self.assertContains(response, "Revise e confirme um texto não vazio")
 
     def test_revisao_inexistente_retorna_404(self):
         response = self.client.get(

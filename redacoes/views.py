@@ -1,9 +1,10 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_http_methods
 
-from .forms import RedacaoForm
+from .forms import RedacaoForm, RevisaoTranscricaoForm
 from .models import Redacao
+from .services.gemini_service import GeminiServiceError, avaliar_redacao_com_gemini
 from .services.vision_service import VisionServiceError, extrair_texto_documento
 
 
@@ -63,7 +64,58 @@ def pagina_inicial(request):
     return render(request, "redacoes/inicio.html", {"form": form})
 
 
-@require_GET
+@require_http_methods(["GET", "POST"])
 def revisar_redacao(request, pk):
     redacao = get_object_or_404(Redacao, pk=pk)
-    return render(request, "redacoes/revisao.html", {"redacao": redacao})
+
+    if request.method == "POST":
+        form = RevisaoTranscricaoForm(request.POST, instance=redacao)
+        if form.is_valid():
+            redacao = form.save(commit=False)
+            redacao.resultado_json = {}
+            redacao.save(
+                update_fields=[
+                    "texto_revisado",
+                    "resultado_json",
+                    "atualizada_em",
+                ]
+            )
+
+            try:
+                resultado = avaliar_redacao_com_gemini(
+                    redacao.tema,
+                    redacao.texto_revisado,
+                )
+            except GeminiServiceError as erro:
+                messages.error(
+                    request,
+                    f"Texto revisado salvo, mas a avaliação não foi concluída: {erro}",
+                )
+            else:
+                redacao.resultado_json = resultado
+                redacao.save(update_fields=["resultado_json", "atualizada_em"])
+                messages.success(
+                    request,
+                    "Texto revisado salvo e avaliação estruturada concluída.",
+                )
+
+            return redirect("redacoes:revisao", pk=redacao.pk)
+
+        messages.error(
+            request,
+            "Não foi possível confirmar o texto. Revise o campo destacado.",
+        )
+    else:
+        form = RevisaoTranscricaoForm(
+            instance=redacao,
+            initial={
+                "texto_revisado": redacao.texto_revisado
+                or redacao.texto_transcrito
+            },
+        )
+
+    return render(
+        request,
+        "redacoes/revisao.html",
+        {"redacao": redacao, "form": form},
+    )

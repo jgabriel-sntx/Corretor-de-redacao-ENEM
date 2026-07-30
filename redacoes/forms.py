@@ -35,3 +35,24 @@ class RedacaoForm(forms.ModelForm):
             "imagem": "Envie uma imagem de até 10 MB.",
             "texto_original": "Informe o texto ou envie uma imagem.",
         }
+
+
+class RevisaoTranscricaoForm(forms.ModelForm):
+    texto_revisado = forms.CharField(
+        label="Texto revisado",
+        required=True,
+        strip=True,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control review-textarea",
+                "rows": 18,
+                "placeholder": "Revise a transcrição antes de confirmar...",
+                "aria-describedby": "revisao-ajuda",
+            }
+        ),
+        error_messages={"required": "Revise e confirme um texto não vazio."},
+    )
+
+    class Meta:
+        model = Redacao
+        fields = ["texto_revisado"]
