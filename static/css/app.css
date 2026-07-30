@@ -1,1 +1,106 @@
-/* Estilos globais do projeto serão adicionados aqui. */
+:root {
+    --app-primary: #3157d5;
+    --app-primary-dark: #2443aa;
+    --app-background: #f5f7fb;
+    --app-border: #dfe4ee;
+}
+
+body {
+    background: var(--app-background);
+    color: #172033;
+}
+
+.navbar-brand {
+    color: #172033;
+}
+
+.brand-mark,
+.step-number {
+    align-items: center;
+    background: var(--app-primary);
+    color: #fff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: center;
+}
+
+.brand-mark {
+    border-radius: 0.65rem;
+    height: 2.25rem;
+    width: 2.25rem;
+}
+
+.hero-section {
+    background:
+        radial-gradient(circle at 8% 12%, rgba(49, 87, 213, 0.1), transparent 28rem),
+        var(--app-background);
+}
+
+.submission-card {
+    border-radius: 1.25rem;
+}
+
+.step-number {
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    height: 2rem;
+    width: 2rem;
+}
+
+.upload-area {
+    background: #f9faff;
+    border: 1px dashed #aab6d3;
+    border-radius: 0.85rem;
+}
+
+.upload-area:focus-within {
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 0.25rem rgba(49, 87, 213, 0.12);
+}
+
+.preview-container img {
+    background: #fff;
+    border: 1px solid var(--app-border);
+    max-height: 20rem;
+    object-fit: contain;
+    width: 100%;
+}
+
+.divider-label span {
+    background: var(--app-border);
+    height: 1px;
+    width: 100%;
+}
+
+.divider-label small {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.form-control:focus {
+    border-color: #7890e5;
+    box-shadow: 0 0 0 0.25rem rgba(49, 87, 213, 0.12);
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--app-primary);
+    --bs-btn-border-color: var(--app-primary);
+    --bs-btn-hover-bg: var(--app-primary-dark);
+    --bs-btn-hover-border-color: var(--app-primary-dark);
+}
+
+textarea.form-control {
+    min-height: 15rem;
+    resize: vertical;
+}
+
+@media (max-width: 575.98px) {
+    .submission-card {
+        border-radius: 1rem;
+    }
+
+    .submission-card .card-body {
+        padding: 1.25rem !important;
+    }
+}
