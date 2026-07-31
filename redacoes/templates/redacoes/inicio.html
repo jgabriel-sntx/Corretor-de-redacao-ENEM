@@ -72,7 +72,7 @@
                                 <label for="{{ form.imagem.id_for_label }}" class="form-label fw-semibold">Imagem da redação</label>
                                 <div class="upload-area p-3 p-md-4">
                                     {{ form.imagem }}
-                                    <div id="imagem-ajuda" class="form-text mt-2">JPG, PNG ou outra imagem válida, com até 10 MB.</div>
+                                    <div id="imagem-ajuda" class="form-text mt-2">JPG, PNG ou outra imagem válida, com até 1 MB.</div>
                                     <div id="image-preview" class="preview-container d-none mt-3">
                                         <img id="preview-image" class="img-fluid rounded" alt="Pré-visualização da redação selecionada">
                                         <button id="remove-image" type="button" class="btn btn-sm btn-outline-danger mt-2">Remover imagem</button>
@@ -101,7 +101,10 @@
                                 </button>
                             </div>
                             <p class="small text-secondary text-center mt-3 mb-0">
-                                Imagens passam pelo OCR; a avaliação ocorre após sua revisão.
+                                Não inclua nome, CPF, endereço, assinatura ou outros dados pessoais.
+                            </p>
+                            <p class="small text-secondary text-center mt-3 mb-0">
+                                Imagens são enviadas ao OCR.space; a avaliação usa a NVIDIA após sua revisão.
                             </p>
                         </form>
                     </div>

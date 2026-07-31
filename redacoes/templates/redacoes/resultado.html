@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado da avaliação | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container result-container">
+        <nav aria-label="Etapas da correção" class="mb-4">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'redacoes:inicio' %}">Página inicial</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'redacoes:revisao' redacao.pk %}">Revisão</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Resultado</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+            <div>
+                <span class="badge rounded-pill text-bg-success mb-2">Avaliação concluída</span>
+                <h1 class="display-6 fw-bold mb-2">Resultado da redação</h1>
+                <p class="text-secondary mb-0">{{ redacao.tema }}</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'redacoes:revisao' redacao.pk %}" class="btn btn-outline-primary">Revisar texto</a>
+                <a href="{% url 'redacoes:inicio' %}" class="btn btn-primary">Nova redação</a>
+            </div>
+        </div>
+
+        {% if resultado.avaliacao_possivel %}
+            <section class="card result-summary border-0 shadow-sm mb-4" aria-labelledby="nota-total-titulo">
+                <div class="card-body p-4 p-md-5 d-flex flex-column flex-md-row align-items-md-center gap-4">
+                    <div class="total-score" aria-label="Nota total {{ resultado.nota_total }} de 1000">
+                        <strong>{{ resultado.nota_total }}</strong>
+                        <span>de 1000</span>
+                    </div>
+                    <div>
+                        <span class="text-secondary small">Nota total</span>
+                        <h2 id="nota-total-titulo" class="h3 fw-bold mb-2">Avaliação pelas cinco competências</h2>
+                        <p class="text-secondary mb-0">Resultado gerado por IA para orientação pedagógica. Não equivale à nota oficial do Inep.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section aria-labelledby="competencias-titulo" class="mb-4">
+                <h2 id="competencias-titulo" class="h3 fw-bold mb-3">Competências</h2>
+                <div class="d-grid gap-3">
+                    {% for competencia in resultado.competencias %}
+                        <article class="card result-card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between gap-3 mb-3">
+                                    <div>
+                                        <span class="text-secondary small">Competência {{ competencia.numero }}</span>
+                                        <h3 class="h5 fw-bold mb-0">{{ competencia.nome }}</h3>
+                                    </div>
+                                    <div class="competency-score flex-shrink-0" aria-label="Nota {{ competencia.nota }} de 200">
+                                        <strong>{{ competencia.nota }}</strong><span>/200</span>
+                                    </div>
+                                </div>
+
+                                <p class="mb-4">{{ competencia.justificativa }}</p>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="result-detail result-strength h-100 p-3 rounded">
+                                            <h4 class="h6 fw-bold">Pontos fortes</h4>
+                                            {% if competencia.pontos_fortes %}
+                                                <ul class="mb-0 ps-3">
+                                                    {% for item in competencia.pontos_fortes %}<li>{{ item }}</li>{% endfor %}
+                                                </ul>
+                                            {% else %}
+                                                <p class="text-secondary mb-0">Nenhum ponto destacado.</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="result-detail result-improvement h-100 p-3 rounded">
+                                            <h4 class="h6 fw-bold">Como melhorar</h4>
+                                            {% if competencia.melhorias %}
+                                                <ul class="mb-0 ps-3">
+                                                    {% for item in competencia.melhorias %}<li>{{ item }}</li>{% endfor %}
+                                                </ul>
+                                            {% else %}
+                                                <p class="text-secondary mb-0">Nenhuma melhoria indicada.</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <div class="row g-4 mb-4">
+                <div class="col-lg-7">
+                    <section class="card result-card border-0 shadow-sm h-100" aria-labelledby="diagnostico-titulo">
+                        <div class="card-body p-4">
+                            <h2 id="diagnostico-titulo" class="h4 fw-bold">Diagnóstico geral</h2>
+                            <p>{{ resultado.diagnostico_geral }}</p>
+
+                            <h3 class="h6 fw-bold mt-4">Prioridades de melhoria</h3>
+                            {% if resultado.prioridades_melhoria %}
+                                <ol class="mb-0 ps-3">
+                                    {% for prioridade in resultado.prioridades_melhoria %}<li class="mb-2">{{ prioridade }}</li>{% endfor %}
+                                </ol>
+                            {% else %}
+                                <p class="text-secondary mb-0">Nenhuma prioridade indicada.</p>
+                            {% endif %}
+                        </div>
+                    </section>
+                </div>
+
+                <div class="col-lg-5">
+                    <section class="card result-card border-0 shadow-sm h-100" aria-labelledby="intervencao-titulo">
+                        <div class="card-body p-4">
+                            <h2 id="intervencao-titulo" class="h4 fw-bold">Proposta de intervenção</h2>
+                            <dl class="result-definition mb-0">
+                                <dt>Presente</dt><dd>{% if resultado.proposta_intervencao.presente %}Sim{% else %}Não{% endif %}</dd>
+                                <dt>Agente</dt><dd>{{ resultado.proposta_intervencao.agente|default_if_none:"Não identificado" }}</dd>
+                                <dt>Ação</dt><dd>{{ resultado.proposta_intervencao.acao|default_if_none:"Não identificada" }}</dd>
+                                <dt>Meio/modo</dt><dd>{{ resultado.proposta_intervencao.meio_modo|default_if_none:"Não identificado" }}</dd>
+                                <dt>Finalidade</dt><dd>{{ resultado.proposta_intervencao.finalidade|default_if_none:"Não identificada" }}</dd>
+                                <dt>Detalhamento</dt><dd>{{ resultado.proposta_intervencao.detalhamento|default_if_none:"Não identificado" }}</dd>
+                                <dt>Direitos humanos</dt>
+                                <dd>
+                                    {% if resultado.proposta_intervencao.respeita_direitos_humanos == True %}Respeitados{% elif resultado.proposta_intervencao.respeita_direitos_humanos == False %}Não respeitados{% else %}Não verificável{% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        {% else %}
+            <section class="alert alert-warning shadow-sm" role="alert">
+                <h2 class="h4 alert-heading">Não foi possível atribuir notas</h2>
+                <p class="mb-0">{{ resultado.motivo_impedimento }}</p>
+            </section>
+        {% endif %}
+
+        <section class="card result-card border-0 shadow-sm" aria-labelledby="limitacoes-titulo">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h2 id="limitacoes-titulo" class="h4 fw-bold mb-0">Limitações da avaliação</h2>
+                    <span class="badge text-bg-secondary">Confiança: {{ resultado.confianca }}</span>
+                </div>
+                {% if resultado.limitacoes %}
+                    <ul class="mb-0 ps-3">
+                        {% for limitacao in resultado.limitacoes %}<li>{{ limitacao }}</li>{% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-secondary mb-0">Nenhuma limitação adicional informada.</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

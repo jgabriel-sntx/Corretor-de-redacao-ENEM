@@ -44,8 +44,93 @@ body {
     max-width: 960px;
 }
 
+.result-container {
+    max-width: 1040px;
+}
+
 .review-card {
     border-radius: 1.25rem;
+}
+
+.result-card,
+.result-summary {
+    border-radius: 1.25rem;
+}
+
+.result-summary {
+    background: linear-gradient(135deg, #fff, #eef3ff);
+}
+
+.total-score {
+    align-items: center;
+    background: var(--app-primary);
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    height: 9rem;
+    justify-content: center;
+    width: 9rem;
+}
+
+.total-score strong {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.total-score span {
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+}
+
+.competency-score {
+    align-items: baseline;
+    background: #eef3ff;
+    border-radius: 0.75rem;
+    color: var(--app-primary-dark);
+    display: flex;
+    gap: 0.15rem;
+    padding: 0.65rem 0.9rem;
+}
+
+.competency-score strong {
+    font-size: 1.5rem;
+}
+
+.competency-score span {
+    font-size: 0.8rem;
+}
+
+.result-detail {
+    border: 1px solid var(--app-border);
+}
+
+.result-strength {
+    background: #f2fbf6;
+}
+
+.result-improvement {
+    background: #fff9ef;
+}
+
+.result-definition dt {
+    color: #6c757d;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.result-definition dd {
+    border-bottom: 1px solid var(--app-border);
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.8rem;
+}
+
+.result-definition dd:last-child {
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 
 .review-image-wrapper {
@@ -148,5 +233,10 @@ textarea.form-control {
 
     .submission-card .card-body {
         padding: 1.25rem !important;
+    }
+
+    .total-score {
+        height: 7.5rem;
+        width: 7.5rem;
     }
 }

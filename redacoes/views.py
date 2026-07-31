@@ -4,8 +4,8 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import RedacaoForm, RevisaoTranscricaoForm
 from .models import Redacao
-from .services.gemini_service import GeminiServiceError, avaliar_redacao_com_gemini
-from .services.vision_service import VisionServiceError, extrair_texto_documento
+from .services.ai_service import AIServiceError, avaliar_redacao
+from .services.ocr_service import OCRServiceError, extrair_texto_documento
 
 
 @require_http_methods(["GET", "POST"])
@@ -50,7 +50,8 @@ def revisar_redacao(request, pk):
         form = RevisaoTranscricaoForm(request.POST, instance=redacao)
         if form.is_valid():
             redacao = form.save(commit=False)
-            _salvar_e_avaliar(request, redacao)
+            if _salvar_e_avaliar(request, redacao):
+                return redirect("redacoes:resultado", pk=redacao.pk)
             return redirect("redacoes:revisao", pk=redacao.pk)
         messages.error(
             request,
@@ -64,13 +65,30 @@ def revisar_redacao(request, pk):
     )
 
 
+@require_http_methods(["GET"])
+def resultado_redacao(request, pk):
+    redacao = get_object_or_404(Redacao, pk=pk)
+    if not redacao.resultado_json:
+        messages.warning(
+            request,
+            "Esta redação ainda não possui uma avaliação concluída.",
+        )
+        return redirect("redacoes:revisao", pk=redacao.pk)
+
+    return render(
+        request,
+        "redacoes/resultado.html",
+        {"redacao": redacao, "resultado": redacao.resultado_json},
+    )
+
+
 def _processar_ocr(request, redacao: Redacao) -> None:
     redacao.status = Redacao.Status.PROCESSANDO
     redacao.save(update_fields=["status", "atualizada_em"])
 
     try:
         redacao.texto_transcrito = extrair_texto_documento(redacao.imagem)
-    except VisionServiceError as erro:
+    except OCRServiceError as erro:
         redacao.status = Redacao.Status.ERRO
         messages.error(request, str(erro))
     else:
@@ -86,20 +104,20 @@ def _processar_ocr(request, redacao: Redacao) -> None:
     redacao.save(update_fields=["texto_transcrito", "status", "atualizada_em"])
 
 
-def _salvar_e_avaliar(request, redacao: Redacao) -> None:
+def _salvar_e_avaliar(request, redacao: Redacao) -> bool:
     redacao.resultado_json = {}
     redacao.save(
         update_fields=["texto_revisado", "resultado_json", "atualizada_em"]
     )
 
     try:
-        resultado = avaliar_redacao_com_gemini(redacao.tema, redacao.texto_revisado)
-    except GeminiServiceError as erro:
+        resultado = avaliar_redacao(redacao.tema, redacao.texto_revisado)
+    except AIServiceError as erro:
         messages.error(
             request,
             f"Texto revisado salvo, mas a avaliação não foi concluída: {erro}",
         )
-        return
+        return False
 
     redacao.resultado_json = resultado
     redacao.save(update_fields=["resultado_json", "atualizada_em"])
@@ -107,3 +125,4 @@ def _salvar_e_avaliar(request, redacao: Redacao) -> None:
         request,
         "Texto revisado salvo e avaliação estruturada concluída.",
     )
+    return True

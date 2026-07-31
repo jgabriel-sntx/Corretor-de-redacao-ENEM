@@ -1,10 +1,10 @@
 from io import BytesIO
 from datetime import timedelta
+import os
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from google.api_core.exceptions import GoogleAPICallError, ResourceExhausted
-from google.auth.exceptions import DefaultCredentialsError
+import httpx
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
@@ -14,13 +14,17 @@ from PIL import Image
 
 from .forms import RedacaoForm, RevisaoTranscricaoForm
 from .models import Redacao
-from .services.gemini_service import GeminiServiceError
-from .services.vision_service import (
-    VisionCredentialsError,
-    VisionQuotaError,
-    VisionServiceError,
+from .services.ai_service import AIServiceError
+from .services.ocr_service import (
+    OCRAuthenticationError,
+    OCRConfigurationError,
+    OCRQuotaError,
+    OCRResponseError,
+    OCRServiceError,
+    OCRTimeoutError,
     extrair_texto_documento,
 )
+from .services.prompt_builder import NOMES_COMPETENCIAS
 from .validators import TAMANHO_MAXIMO_IMAGEM, validar_tamanho_imagem
 
 
@@ -32,6 +36,42 @@ def criar_imagem_png():
         conteudo.getvalue(),
         content_type="image/png",
     )
+
+
+def criar_resultado_avaliacao():
+    return {
+        "schema_version": "1.0",
+        "avaliacao_possivel": True,
+        "motivo_impedimento": None,
+        "situacoes_nota_zero": [],
+        "competencias": [
+            {
+                "numero": numero,
+                "nome": NOMES_COMPETENCIAS[numero],
+                "nota": 160,
+                "justificativa": f"Justificativa da competência {numero}.",
+                "evidencias": [],
+                "pontos_fortes": [f"Ponto forte {numero}."],
+                "melhorias": [f"Melhoria {numero}."],
+            }
+            for numero in range(1, 6)
+        ],
+        "nota_total": 800,
+        "proposta_intervencao": {
+            "presente": True,
+            "agente": "Escolas",
+            "acao": "Criar clubes de leitura",
+            "meio_modo": "Encontros semanais",
+            "finalidade": "Ampliar o acesso aos livros",
+            "detalhamento": "Com acompanhamento dos professores",
+            "respeita_direitos_humanos": True,
+            "evidencias": [],
+        },
+        "diagnostico_geral": "A redação apresenta uma argumentação consistente.",
+        "prioridades_melhoria": ["Aprofundar os argumentos."],
+        "confianca": "media",
+        "limitacoes": ["Textos motivadores não fornecidos."],
+    }
 
 
 class RedacaoModelTests(TestCase):
@@ -118,7 +158,7 @@ class RedacaoFormTests(TestCase):
     def test_validador_rejeita_imagem_acima_de_dez_megabytes(self):
         arquivo = Mock(size=TAMANHO_MAXIMO_IMAGEM + 1)
 
-        with self.assertRaisesRegex(ValidationError, "10 MB"):
+        with self.assertRaisesRegex(ValidationError, "1 MB"):
             validar_tamanho_imagem(arquivo)
 
     def test_formulario_revisao_remove_espacos_e_exige_texto(self):
@@ -170,7 +210,7 @@ class PaginaInicialTests(TestCase):
         )
 
     @patch("redacoes.views.extrair_texto_documento")
-    def test_envio_por_texto_nao_chama_google_vision(self, mock_ocr):
+    def test_envio_por_texto_nao_chama_ocr(self, mock_ocr):
         self.client.post(
             self.url,
             {"tema": "Tema somente texto", "texto_original": "Texto digitado."},
@@ -207,7 +247,7 @@ class PaginaInicialTests(TestCase):
 
     @patch(
         "redacoes.views.extrair_texto_documento",
-        return_value="Texto reconhecido pelo Google Vision.",
+        return_value="Texto reconhecido pelo OCR.space.",
     )
     def test_envio_com_imagem_executa_ocr_e_salva_transcricao(self, mock_ocr):
         with TemporaryDirectory() as pasta_media, self.settings(
@@ -222,7 +262,7 @@ class PaginaInicialTests(TestCase):
         mock_ocr.assert_called_once()
         self.assertEqual(
             redacao.texto_transcrito,
-            "Texto reconhecido pelo Google Vision.",
+            "Texto reconhecido pelo OCR.space.",
         )
         self.assertEqual(redacao.status, Redacao.Status.CONCLUIDA)
         self.assertRedirects(
@@ -233,7 +273,7 @@ class PaginaInicialTests(TestCase):
 
     @patch(
         "redacoes.views.extrair_texto_documento",
-        side_effect=VisionServiceError("Falha controlada no OCR."),
+        side_effect=OCRServiceError("Falha controlada no OCR."),
     )
     def test_falha_do_ocr_preserva_redacao_e_marca_erro(self, mock_ocr):
         with TemporaryDirectory() as pasta_media, self.settings(
@@ -282,10 +322,10 @@ class PaginaRevisaoTests(TestCase):
         )
 
     @patch(
-        "redacoes.views.avaliar_redacao_com_gemini",
+        "redacoes.views.avaliar_redacao",
         return_value={"schema_version": "1.0", "nota_total": 800},
     )
-    def test_confirmar_salva_texto_revisado_sem_alterar_ocr(self, mock_gemini):
+    def test_confirmar_salva_texto_revisado_sem_alterar_ocr(self, mock_ia):
         texto_ocr_original = self.redacao.texto_transcrito
         texto_corrigido = "Primeiro parágrafo corrigido.\n\nSegundo parágrafo."
 
@@ -298,33 +338,36 @@ class PaginaRevisaoTests(TestCase):
         self.assertEqual(self.redacao.texto_revisado, texto_corrigido)
         self.assertEqual(self.redacao.texto_transcrito, texto_ocr_original)
         self.assertEqual(self.redacao.resultado_json["nota_total"], 800)
-        mock_gemini.assert_called_once_with(self.redacao.tema, texto_corrigido)
+        mock_ia.assert_called_once_with(self.redacao.tema, texto_corrigido)
         self.assertRedirects(
             response,
-            self.url,
+            reverse("redacoes:resultado", kwargs={"pk": self.redacao.pk}),
             fetch_redirect_response=False,
         )
 
     @patch(
-        "redacoes.views.avaliar_redacao_com_gemini",
+        "redacoes.views.avaliar_redacao",
         return_value={"schema_version": "1.0"},
     )
-    def test_confirmacao_exibe_mensagem_apos_redirect(self, mock_gemini):
+    def test_confirmacao_exibe_mensagem_apos_redirect(self, mock_ia):
         response = self.client.post(
             self.url,
             {"texto_revisado": "Transcrição confirmada."},
             follow=True,
         )
 
-        self.assertRedirects(response, self.url)
+        self.assertRedirects(
+            response,
+            reverse("redacoes:resultado", kwargs={"pk": self.redacao.pk}),
+        )
         self.assertContains(response, "avaliação estruturada concluída")
 
     @patch(
-        "redacoes.views.avaliar_redacao_com_gemini",
-        side_effect=GeminiServiceError("Falha controlada do Gemini."),
+        "redacoes.views.avaliar_redacao",
+        side_effect=AIServiceError("Falha controlada da NVIDIA."),
     )
-    def test_falha_do_gemini_preserva_revisao_e_limpa_resultado_antigo(
-        self, mock_gemini
+    def test_falha_da_ia_preserva_revisao_e_limpa_resultado_antigo(
+        self, mock_ia
     ):
         self.redacao.resultado_json = {"nota_total": 1000}
         self.redacao.save(update_fields=["resultado_json"])
@@ -338,7 +381,7 @@ class PaginaRevisaoTests(TestCase):
         self.redacao.refresh_from_db()
         self.assertEqual(self.redacao.texto_revisado, "Texto humano confirmado.")
         self.assertEqual(self.redacao.resultado_json, {})
-        self.assertContains(response, "Falha controlada do Gemini")
+        self.assertContains(response, "Falha controlada da NVIDIA")
 
     def test_texto_revisado_vazio_nao_e_salvo(self):
         response = self.client.post(self.url, {"texto_revisado": "   "})
@@ -348,11 +391,11 @@ class PaginaRevisaoTests(TestCase):
         self.assertEqual(self.redacao.texto_revisado, "")
         self.assertContains(response, "Revise e confirme um texto não vazio")
 
-    @patch("redacoes.views.avaliar_redacao_com_gemini")
-    def test_texto_invalido_nao_chama_gemini(self, mock_gemini):
+    @patch("redacoes.views.avaliar_redacao")
+    def test_texto_invalido_nao_chama_ia(self, mock_ia):
         self.client.post(self.url, {"texto_revisado": "   "})
 
-        mock_gemini.assert_not_called()
+        mock_ia.assert_not_called()
 
     def test_metodo_http_nao_permitido_retorna_405(self):
         self.assertEqual(self.client.delete(self.url).status_code, 405)
@@ -382,79 +425,222 @@ class PaginaRevisaoTests(TestCase):
         self.assertContains(response, "Redação salva com sucesso")
 
 
-class VisionServiceTests(TestCase):
-    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
-    def test_document_text_detection_retorna_texto_completo(self, cliente_mock):
-        resposta = cliente_mock.return_value.document_text_detection.return_value
-        resposta.error.message = ""
-        resposta.full_text_annotation.text = "  Primeira linha.\nSegunda linha.  "
-
-        texto = extrair_texto_documento(
-            SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
+class PaginaResultadoTests(TestCase):
+    def setUp(self):
+        self.redacao = Redacao.objects.create(
+            tema="A importância da leitura",
+            texto_original="Texto original.",
+            texto_revisado="Texto revisado.",
+            resultado_json=criar_resultado_avaliacao(),
+        )
+        self.url = reverse(
+            "redacoes:resultado", kwargs={"pk": self.redacao.pk}
         )
 
-        cliente_mock.return_value.document_text_detection.assert_called_once()
-        chamada = cliente_mock.return_value.document_text_detection.call_args
-        self.assertEqual(chamada.kwargs["timeout"], 30)
-        self.assertEqual(chamada.kwargs["image"].content, b"conteudo-da-imagem")
-        self.assertEqual(texto, "Primeira linha.\nSegunda linha.")
+    def test_resultado_exibe_nota_competencias_e_diagnostico(self):
+        response = self.client.get(self.url)
 
-    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
-    def test_documento_sem_texto_retorna_string_vazia(self, cliente_mock):
-        resposta = cliente_mock.return_value.document_text_detection.return_value
-        resposta.error.message = ""
-        resposta.full_text_annotation.text = "   "
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Resultado da redação")
+        self.assertContains(response, "800")
+        self.assertContains(response, "de 1000")
+        self.assertContains(response, "Justificativa da competência 1")
+        self.assertContains(response, "Justificativa da competência 5")
+        self.assertContains(response, "Aprofundar os argumentos")
+        self.assertContains(response, "Criar clubes de leitura")
+        self.assertContains(response, "Confiança: media")
+
+    def test_resultado_oferece_revisao_e_nova_redacao(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(
+            response,
+            reverse("redacoes:revisao", kwargs={"pk": self.redacao.pk}),
+        )
+        self.assertContains(response, reverse("redacoes:inicio"))
+
+    def test_sem_resultado_redireciona_para_revisao(self):
+        self.redacao.resultado_json = {}
+        self.redacao.save(update_fields=["resultado_json"])
+
+        response = self.client.get(self.url, follow=True)
+
+        self.assertRedirects(
+            response,
+            reverse("redacoes:revisao", kwargs={"pk": self.redacao.pk}),
+        )
+        self.assertContains(response, "ainda não possui uma avaliação concluída")
+
+    def test_resultado_inexistente_retorna_404(self):
+        response = self.client.get(
+            reverse("redacoes:resultado", kwargs={"pk": 999999})
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_resultado_aceita_apenas_get(self):
+        self.assertEqual(self.client.post(self.url).status_code, 405)
+
+    def test_avaliacao_impossivel_exibe_motivo(self):
+        resultado = criar_resultado_avaliacao()
+        resultado["avaliacao_possivel"] = False
+        resultado["motivo_impedimento"] = "Texto insuficiente para avaliação."
+        resultado["nota_total"] = None
+        for competencia in resultado["competencias"]:
+            competencia["nota"] = None
+        self.redacao.resultado_json = resultado
+        self.redacao.save(update_fields=["resultado_json"])
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Não foi possível atribuir notas")
+        self.assertContains(response, "Texto insuficiente para avaliação")
+
+
+class OCRServiceTests(TestCase):
+    def setUp(self):
+        self.ambiente = patch.dict(
+            os.environ,
+            {
+                "OCR_SPACE_API_KEY": "chave-teste",
+                "OCR_SPACE_API_URL": "https://api.ocr.space/Parse/Image",
+                "OCR_SPACE_ENGINE": "3",
+                "OCR_SPACE_LANGUAGE": "auto",
+                "OCR_SPACE_TIMEOUT_SECONDS": "60",
+            },
+        )
+        self.ambiente.start()
+        self.addCleanup(self.ambiente.stop)
+
+    @staticmethod
+    def resposta_mock(status=200, dados=None):
+        resposta = Mock(status_code=status, is_error=status >= 400)
+        resposta.json.return_value = dados
+        return resposta
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_envia_imagem_e_retorna_texto(self, post_mock):
+        post_mock.return_value = self.resposta_mock(
+            dados={
+                "OCRExitCode": 1,
+                "IsErroredOnProcessing": False,
+                "ParsedResults": [
+                    {"FileParseExitCode": 1, "ParsedText": "  Texto reconhecido.  "}
+                ],
+            }
+        )
 
         texto = extrair_texto_documento(
-            SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
+            SimpleUploadedFile("redacao.png", b"imagem", content_type="image/png")
         )
+
+        chamada = post_mock.call_args.kwargs
+        self.assertEqual(chamada["headers"], {"apikey": "chave-teste"})
+        self.assertEqual(chamada["files"]["file"][1], b"imagem")
+        self.assertEqual(chamada["data"]["OCREngine"], "3")
+        self.assertEqual(chamada["data"]["language"], "auto")
+        self.assertEqual(chamada["timeout"], 60)
+        self.assertEqual(texto, "Texto reconhecido.")
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_sucesso_parcial_ignora_resultado_com_erro(self, post_mock):
+        post_mock.return_value = self.resposta_mock(
+            dados={
+                "OCRExitCode": 2,
+                "IsErroredOnProcessing": False,
+                "ParsedResults": [
+                    {"FileParseExitCode": 1, "ParsedText": "Página válida."},
+                    {"FileParseExitCode": -20, "ParsedText": None},
+                ],
+            }
+        )
+
+        texto = extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
+
+        self.assertEqual(texto, "Página válida.")
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_documento_sem_texto_retorna_string_vazia(self, post_mock):
+        post_mock.return_value = self.resposta_mock(
+            dados={
+                "OCRExitCode": 1,
+                "IsErroredOnProcessing": False,
+                "ParsedResults": [{"FileParseExitCode": 1, "ParsedText": "   "}],
+            }
+        )
+
+        texto = extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
 
         self.assertEqual(texto, "")
 
-    def test_imagem_ausente_e_rejeitada_antes_do_cliente(self):
-        with self.assertRaisesRegex(ValueError, "imagem"):
-            extrair_texto_documento(None)
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_chave_recusada_recebe_erro_especifico(self, post_mock):
+        post_mock.return_value = self.resposta_mock(status=403)
 
-    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
-    def test_erro_retornado_pela_api_e_convertido(self, cliente_mock):
-        resposta = cliente_mock.return_value.document_text_detection.return_value
-        resposta.error.message = "imagem inválida"
+        with self.assertRaises(OCRAuthenticationError):
+            extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
 
-        with self.assertRaises(VisionServiceError):
-            extrair_texto_documento(
-                SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
-            )
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_cota_esgotada_recebe_erro_especifico(self, post_mock):
+        post_mock.return_value = self.resposta_mock(status=429)
 
-    @patch(
-        "redacoes.services.vision_service.vision.ImageAnnotatorClient",
-        side_effect=DefaultCredentialsError("sem credenciais"),
-    )
-    def test_credenciais_ausentes_recebem_erro_especifico(self, cliente_mock):
-        with self.assertRaises(VisionCredentialsError):
-            extrair_texto_documento(
-                SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
-            )
+        with self.assertRaises(OCRQuotaError):
+            extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
 
-    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
-    def test_cota_esgotada_recebe_erro_especifico(self, cliente_mock):
-        cliente_mock.return_value.document_text_detection.side_effect = (
-            ResourceExhausted("cota esgotada")
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_timeout_recebe_erro_especifico(self, post_mock):
+        post_mock.side_effect = httpx.ReadTimeout("demorou")
+
+        with self.assertRaises(OCRTimeoutError):
+            extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_json_invalido_e_rejeitado(self, post_mock):
+        resposta = self.resposta_mock()
+        resposta.json.side_effect = ValueError("detalhe interno")
+        post_mock.return_value = resposta
+
+        with self.assertRaises(OCRResponseError):
+            extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_falha_informada_no_json_e_rejeitada(self, post_mock):
+        post_mock.return_value = self.resposta_mock(
+            dados={
+                "OCRExitCode": 3,
+                "IsErroredOnProcessing": True,
+                "ErrorMessage": "detalhe interno",
+            }
         )
 
-        with self.assertRaises(VisionQuotaError):
-            extrair_texto_documento(
-                SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
-            )
-
-    @patch("redacoes.services.vision_service.vision.ImageAnnotatorClient")
-    def test_falha_generica_da_api_recebe_mensagem_segura(self, cliente_mock):
-        cliente_mock.return_value.document_text_detection.side_effect = (
-            GoogleAPICallError("detalhe interno")
-        )
-
-        with self.assertRaises(VisionServiceError) as contexto:
-            extrair_texto_documento(
-                SimpleUploadedFile("redacao.png", b"conteudo-da-imagem")
-            )
+        with self.assertRaises(OCRResponseError) as contexto:
+            extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
 
         self.assertNotIn("detalhe interno", str(contexto.exception))
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_sucesso_parcial_sem_pagina_valida_e_rejeitado(self, post_mock):
+        post_mock.return_value = self.resposta_mock(
+            dados={
+                "OCRExitCode": 2,
+                "IsErroredOnProcessing": False,
+                "ParsedResults": [
+                    {"FileParseExitCode": -20, "ParsedText": None}
+                ],
+            }
+        )
+
+        with self.assertRaises(OCRResponseError):
+            extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
+
+    @patch("redacoes.services.ocr_service.httpx.post")
+    def test_chave_ausente_falha_antes_da_rede(self, post_mock):
+        with patch.dict(os.environ, {"OCR_SPACE_API_KEY": ""}):
+            with self.assertRaises(OCRConfigurationError):
+                extrair_texto_documento(SimpleUploadedFile("redacao.png", b"imagem"))
+
+        post_mock.assert_not_called()
+
+    def test_imagem_ausente_e_rejeitada(self):
+        with self.assertRaisesRegex(ValueError, "imagem"):
+            extrair_texto_documento(None)

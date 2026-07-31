@@ -32,7 +32,7 @@ class RedacaoForm(forms.ModelForm):
             ),
         }
         help_texts = {
-            "imagem": "Envie uma imagem de até 10 MB.",
+            "imagem": "Envie uma imagem de até 1 MB.",
             "texto_original": "Informe o texto ou envie uma imagem.",
         }
 
