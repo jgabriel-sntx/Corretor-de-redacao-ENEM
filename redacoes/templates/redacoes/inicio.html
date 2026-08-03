@@ -6,49 +6,12 @@
 {% block content %}
 <section class="hero-section py-4 py-lg-5">
     <div class="container">
-        <div class="row g-4 g-xl-5 align-items-start">
-            <div class="col-lg-5 pt-lg-4">
-                <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
-                    Prepare sua redação
-                </span>
-                <h1 class="display-5 fw-bold lh-sm mb-3">
-                    Envie sua redação de forma simples
-                </h1>
-                <p class="lead text-secondary mb-4">
-                    Informe o tema e escolha como deseja enviar: por imagem ou digitando o texto.
-                </p>
-
-                <div class="d-grid gap-3" aria-label="Orientações de envio">
-                    <div class="info-item d-flex gap-3">
-                        <span class="step-number">1</span>
-                        <div>
-                            <h2 class="h6 mb-1">Informe o tema</h2>
-                            <p class="text-secondary small mb-0">Use o título completo da proposta de redação.</p>
-                        </div>
-                    </div>
-                    <div class="info-item d-flex gap-3">
-                        <span class="step-number">2</span>
-                        <div>
-                            <h2 class="h6 mb-1">Adicione o conteúdo</h2>
-                            <p class="text-secondary small mb-0">Envie uma foto legível, digite o texto ou faça os dois.</p>
-                        </div>
-                    </div>
-                    <div class="info-item d-flex gap-3">
-                        <span class="step-number">3</span>
-                        <div>
-                            <h2 class="h6 mb-1">Confirme o envio</h2>
-                            <p class="text-secondary small mb-0">Se houver imagem, o texto será extraído para revisão.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-7">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-xl-7">
                 <div class="card submission-card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
                         <div class="mb-4">
                             <h2 class="h3 fw-bold mb-2">Nova redação</h2>
-                            <p class="text-secondary mb-0">Preencha o tema e ao menos uma opção de conteúdo.</p>
                         </div>
 
                         <form method="post" enctype="multipart/form-data" novalidate>
@@ -102,9 +65,6 @@
                             </div>
                             <p class="small text-secondary text-center mt-3 mb-0">
                                 Não inclua nome, CPF, endereço, assinatura ou outros dados pessoais.
-                            </p>
-                            <p class="small text-secondary text-center mt-3 mb-0">
-                                Imagens são enviadas ao OCR.space; a avaliação usa a NVIDIA após sua revisão.
                             </p>
                         </form>
                     </div>

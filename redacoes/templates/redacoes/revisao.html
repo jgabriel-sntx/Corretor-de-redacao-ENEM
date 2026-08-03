@@ -14,11 +14,11 @@
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
             <div>
-                <span class="badge rounded-pill text-bg-primary mb-2">Revisão humana</span>
-                <h1 class="display-6 fw-bold mb-2">Confirme a transcrição</h1>
-                <p class="text-secondary mb-0">
-                    Compare a imagem com o resultado do OCR, corrija o texto e confirme quando estiver pronto.
-                </p>
+                {% if redacao.imagem %}
+                    <h1 class="display-6 fw-bold mb-2">Confirme a transcrição</h1>
+                {% else %}
+                    <h1 class="display-6 fw-bold mb-2">Revise o texto enviado</h1>
+                {% endif %}
             </div>
             <a href="{% url 'redacoes:inicio' %}" class="btn btn-outline-primary flex-shrink-0">
                 Enviar outra redação
@@ -42,44 +42,58 @@
 
         <div class="row g-4 align-items-start">
             <div class="col-lg-5">
-                <section class="card review-card border-0 shadow-sm" aria-labelledby="imagem-titulo">
-                    <div class="card-body p-4">
-                        <h2 id="imagem-titulo" class="h5 fw-bold mb-3">Imagem original</h2>
-                        {% if redacao.imagem %}
+                {% if redacao.imagem %}
+                    <section class="card review-card border-0 shadow-sm" aria-labelledby="imagem-titulo">
+                        <div class="card-body p-4">
+                            <h2 id="imagem-titulo" class="h5 fw-bold mb-3">Imagem original</h2>
                             <div class="review-image-wrapper">
                                 <img src="{{ redacao.imagem.url }}" class="img-fluid rounded" alt="Imagem da redação sobre {{ redacao.tema }}">
                             </div>
-                        {% else %}
-                            <div class="empty-review-state rounded p-4 text-center text-secondary">
-                                Esta redação não possui imagem.
-                            </div>
-                        {% endif %}
-                    </div>
-                </section>
-
-                <section class="card review-card border-0 shadow-sm mt-4" aria-labelledby="ocr-titulo">
-                    <div class="card-body p-4">
-                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                            <h2 id="ocr-titulo" class="h5 fw-bold mb-0">Texto OCR</h2>
-                            <span class="badge text-bg-secondary">Somente leitura</span>
                         </div>
-                        {% if redacao.texto_transcrito %}
-                            <div class="ocr-source-text rounded p-3">{{ redacao.texto_transcrito|linebreaksbr }}</div>
-                        {% else %}
-                            <div class="empty-review-state rounded p-3 text-secondary">
-                                Nenhum texto foi extraído pelo OCR.
+                    </section>
+
+                    <section class="card review-card border-0 shadow-sm mt-4" aria-labelledby="ocr-titulo">
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                                <h2 id="ocr-titulo" class="h5 fw-bold mb-0">Texto OCR</h2>
+                                <span class="badge text-bg-secondary">Somente leitura</span>
                             </div>
-                        {% endif %}
-                    </div>
-                </section>
+                            {% if redacao.texto_transcrito %}
+                                <div class="ocr-source-text rounded p-3">{{ redacao.texto_transcrito|linebreaksbr }}</div>
+                            {% else %}
+                                <div class="empty-review-state rounded p-3 text-secondary">
+                                    Nenhum texto foi extraído pelo OCR.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                {% else %}
+                    <section class="card review-card text-source-card border-0 shadow-sm" aria-labelledby="texto-original-titulo">
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                                <h2 id="texto-original-titulo" class="h5 fw-bold mb-0">Texto enviado</h2>
+                                <span class="badge text-bg-secondary">Referência original</span>
+                            </div>
+                            <div class="ocr-source-text rounded p-3">
+                                {{ redacao.texto_original|linebreaksbr }}
+                            </div>
+                        </div>
+                    </section>
+                {% endif %}
             </div>
 
             <div class="col-lg-7">
                 <section class="card review-card border-0 shadow-sm" aria-labelledby="revisao-titulo">
                     <div class="card-body p-4 p-md-5">
-                        <h2 id="revisao-titulo" class="h4 fw-bold mb-2">Texto editável</h2>
+                        <h2 id="revisao-titulo" class="h4 fw-bold mb-2">
+                            {% if redacao.imagem %}Texto editável{% else %}Versão para avaliação{% endif %}
+                        </h2>
                         <p id="revisao-ajuda" class="text-secondary mb-4">
-                            Corrija apenas erros de transcrição. O texto bruto do OCR será preservado.
+                            {% if redacao.imagem %}
+                                Corrija apenas erros de transcrição. O texto bruto do OCR será preservado.
+                            {% else %}
+                                Revise livremente. O texto originalmente enviado continuará preservado.
+                            {% endif %}
                         </p>
 
                         <form method="post" novalidate>
@@ -96,14 +110,11 @@
 
                             <div class="d-grid d-sm-flex justify-content-sm-end">
                                 <button type="submit" class="btn btn-primary btn-lg fw-semibold px-4">
-                                    Confirmar texto
+                                    {% if redacao.imagem %}Confirmar texto{% else %}Avaliar redação{% endif %}
                                 </button>
                             </div>
                         </form>
 
-                        <div class="alert alert-light border mt-4 mb-0" role="note">
-                            Confirmar salva a versão revisada e solicita uma avaliação estruturada à IA da NVIDIA. Uma nova leitura OCR não será executada.
-                        </div>
                     </div>
                 </section>
             </div>

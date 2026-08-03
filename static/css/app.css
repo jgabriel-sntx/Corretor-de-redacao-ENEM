@@ -14,8 +14,7 @@ body {
     color: #172033;
 }
 
-.brand-mark,
-.step-number {
+.brand-mark {
     align-items: center;
     background: var(--app-primary);
     color: #fff;
@@ -169,14 +168,6 @@ body {
     .review-textarea {
         min-height: 22rem !important;
     }
-}
-
-.step-number {
-    border-radius: 50%;
-    font-size: 0.8rem;
-    font-weight: 700;
-    height: 2rem;
-    width: 2rem;
 }
 
 .upload-area {

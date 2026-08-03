@@ -44,6 +44,7 @@ def revisar_redacao(request, pk):
             initial={
                 "texto_revisado": redacao.texto_revisado
                 or redacao.texto_transcrito
+                or redacao.texto_original
             },
         )
     else:
