@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -7,6 +8,11 @@ from typing import Any
 import httpx
 
 from .prompt_builder import (
+    CHAVES_COMPETENCIA,
+    CHAVES_EVIDENCIA,
+    CHAVES_INTERVENCAO,
+    CHAVES_RAIZ,
+    NOTAS_VALIDAS,
     PromptInputError,
     PromptResponseValidationError,
     construir_prompt_correcao,
@@ -19,7 +25,7 @@ logger = logging.getLogger(__name__)
 URL_PADRAO = "https://integrate.api.nvidia.com/v1/chat/completions"
 MODELO_PADRAO = "meta/llama-3.1-8b-instruct"
 TIMEOUT_PADRAO = 120.0
-MAX_OUTPUT_TOKENS_PADRAO = 3_000
+MAX_OUTPUT_TOKENS_PADRAO = 5_000
 ATRASO_NOVA_TENTATIVA = 2.0
 STATUS_TRANSITORIOS = {429, 500, 502, 503, 504, 529}
 PADRAO_MODELO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$")
@@ -81,6 +87,8 @@ def avaliar_redacao(tema: str, redacao: str) -> dict[str, Any]:
     texto_resposta = _solicitar_avaliacao(
         chave_api, url, modelo, timeout, max_tokens, mensagens
     )
+    texto_resposta = _remover_campos_inesperados(texto_resposta)
+    texto_resposta = _corrigir_nota_total(texto_resposta)
 
     try:
         return validar_resposta_correcao(texto_resposta, redacao)
@@ -101,12 +109,14 @@ def avaliar_redacao(tema: str, redacao: str) -> dict[str, Any]:
         texto_corrigido = _solicitar_avaliacao(
             chave_api, url, modelo, timeout, max_tokens, mensagens
         )
+        texto_corrigido = _remover_campos_inesperados(texto_corrigido)
+        texto_corrigido = _corrigir_nota_total(texto_corrigido)
         try:
             return validar_resposta_correcao(texto_corrigido, redacao)
         except PromptResponseValidationError as erro:
             logger.warning("Resposta corrigida da NVIDIA rejeitada pelo contrato local.")
             raise AIResponseError(
-                "A resposta da IA não corresponde ao formato esperado.",
+                _mensagem_resposta_invalida(erro),
                 codigo=erro.codigo,
             ) from erro
 
@@ -195,6 +205,112 @@ def _instrucao_correcao(erro: PromptResponseValidationError) -> str:
         "evidencias=[] em todas as competências e na proposta_intervencao, e use "
         "evidencia=null em situacoes_nota_zero. Recalcule também todas as notas e a soma."
     )
+
+
+def _mensagem_resposta_invalida(erro: PromptResponseValidationError) -> str:
+    mensagens = {
+        "json_invalido": "A IA retornou um JSON incompleto ou inválido.",
+        "resposta_incompleta": "A IA não retornou todos os campos da avaliação.",
+        "competencias_invalidas": "A IA não retornou corretamente as cinco competências.",
+        "nota_invalida": "A IA retornou uma nota fora da escala permitida.",
+        "soma_incorreta": "A nota total retornada não corresponde à soma das competências.",
+        "trecho_inexistente": "A IA retornou uma citação que não existe na redação.",
+        "campos_inesperados": "A IA retornou campos que não fazem parte da avaliação.",
+    }
+    return mensagens.get(
+        erro.codigo,
+        "A resposta da IA não corresponde ao formato esperado.",
+    )
+
+
+def _corrigir_nota_total(texto_resposta: str) -> str:
+    """Recalcula o total quando as cinco notas individuais são válidas."""
+    try:
+        dados = json.loads(texto_resposta)
+    except (json.JSONDecodeError, TypeError):
+        return texto_resposta
+
+    if not isinstance(dados, dict) or dados.get("avaliacao_possivel") is not True:
+        return texto_resposta
+
+    competencias = dados.get("competencias")
+    if not isinstance(competencias, list) or len(competencias) != 5:
+        return texto_resposta
+
+    notas = []
+    for competencia in competencias:
+        if not isinstance(competencia, dict):
+            return texto_resposta
+        nota = competencia.get("nota")
+        if (
+            not isinstance(nota, int)
+            or isinstance(nota, bool)
+            or nota not in NOTAS_VALIDAS
+        ):
+            return texto_resposta
+        notas.append(nota)
+
+    total_correto = sum(notas)
+    if dados.get("nota_total") == total_correto:
+        return texto_resposta
+
+    logger.info("nota_total da NVIDIA recalculada localmente.")
+    dados["nota_total"] = total_correto
+    return json.dumps(dados, ensure_ascii=False, separators=(",", ":"))
+
+
+def _remover_campos_inesperados(texto_resposta: str) -> str:
+    """Remove chaves fora do contrato sem preencher dados ausentes."""
+    try:
+        dados = json.loads(texto_resposta)
+    except (json.JSONDecodeError, TypeError):
+        return texto_resposta
+    if not isinstance(dados, dict):
+        return texto_resposta
+
+    alterado = _manter_chaves(dados, CHAVES_RAIZ)
+
+    competencias = dados.get("competencias")
+    if isinstance(competencias, list):
+        for competencia in competencias:
+            if not isinstance(competencia, dict):
+                continue
+            alterado |= _manter_chaves(competencia, CHAVES_COMPETENCIA)
+            alterado |= _limpar_evidencias(competencia.get("evidencias"))
+
+    intervencao = dados.get("proposta_intervencao")
+    if isinstance(intervencao, dict):
+        alterado |= _manter_chaves(intervencao, CHAVES_INTERVENCAO)
+        alterado |= _limpar_evidencias(intervencao.get("evidencias"))
+
+    situacoes = dados.get("situacoes_nota_zero")
+    if isinstance(situacoes, list):
+        for situacao in situacoes:
+            if isinstance(situacao, dict):
+                alterado |= _manter_chaves(
+                    situacao, {"criterio", "status", "evidencia"}
+                )
+
+    if not alterado:
+        return texto_resposta
+    logger.info("Campos adicionais da resposta da NVIDIA foram descartados.")
+    return json.dumps(dados, ensure_ascii=False, separators=(",", ":"))
+
+
+def _limpar_evidencias(evidencias: Any) -> bool:
+    alterado = False
+    if isinstance(evidencias, list):
+        for evidencia in evidencias:
+            if isinstance(evidencia, dict):
+                alterado |= _manter_chaves(evidencia, CHAVES_EVIDENCIA)
+    return alterado
+
+
+def _manter_chaves(objeto: dict, permitidas: set[str]) -> bool:
+    extras = set(objeto) - permitidas
+    for chave in extras:
+        objeto.pop(chave, None)
+    return bool(extras)
 
 
 def _ler_configuracao() -> tuple[str, str, str, float, int]:
