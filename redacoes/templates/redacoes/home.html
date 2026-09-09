@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas redações | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <span class="nb-tag mb-2">Painel</span>
+                <h1 class="display-6 fw-bold mt-2 mb-0">Minhas redações</h1>
+            </div>
+            <a href="{% url 'redacoes:inicio' %}" class="btn btn-primary btn-lg flex-shrink-0">Nova redação</a>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="nb-stat" style="background: var(--nb-yellow);">
+                    <span class="small fw-bold text-uppercase">Total enviadas</span>
+                    <strong>{{ redacoes|length }}</strong>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="nb-stat" style="background: var(--nb-green);">
+                    <span class="small fw-bold text-uppercase">Concluídas</span>
+                    <strong>{{ total_concluidas }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {% if redacoes %}
+            <div class="d-flex flex-column gap-3">
+                {% for redacao in redacoes %}
+                    <div class="nb-redacao-row p-3 p-md-4">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="nb-status-dot nb-status-{{ redacao.status }} mt-2" aria-hidden="true"></span>
+                                <div>
+                                    <h2 class="h5 fw-bold mb-1">{{ redacao.tema }}</h2>
+                                    <span class="badge text-bg-secondary">{{ redacao.get_status_display }}</span>
+                                    <span class="text-secondary small ms-2">Enviada em {{ redacao.criada_em|date:"d/m/Y H:i" }}</span>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                                {% if redacao.resultado_json %}
+                                    <a href="{% url 'redacoes:resultado' redacao.pk %}" class="btn btn-primary">Ver resultado</a>
+                                {% else %}
+                                    <a href="{% url 'redacoes:revisao' redacao.pk %}" class="btn btn-outline-primary">Continuar revisão</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="nb-empty-state p-5 text-center">
+                <h2 class="h4 fw-bold mb-2">Você ainda não enviou nenhuma redação</h2>
+                <p class="text-secondary mb-4">Envie sua primeira redação e receba uma correção completa em minutos.</p>
+                <a href="{% url 'redacoes:inicio' %}" class="btn btn-primary btn-lg">Enviar minha primeira redação</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

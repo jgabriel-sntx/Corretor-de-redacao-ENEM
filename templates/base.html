@@ -7,23 +7,31 @@
     <meta name="description" content="Envie sua redação do ENEM para análise.">
     <title>{% block title %}Corretor de Redações ENEM{% endblock %}</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top" aria-label="Navegação principal">
-        <div class="container py-2">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{% url 'redacoes:inicio' %}">
+    <nav class="navbar navbar-expand-md sticky-top" aria-label="Navegação principal">
+        <div class="container py-3 flex-wrap gap-3">
+            <a class="navbar-brand d-flex align-items-center gap-2 mb-0" href="{% url 'redacoes:landing' %}">
                 <span class="brand-mark" aria-hidden="true">E</span>
                 <span>Redação ENEM</span>
             </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'redacoes:landing' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'landing' %}active{% endif %}">Início</a>
+                <a href="{% url 'redacoes:home' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Minhas redações</a>
+                <a href="{% url 'redacoes:inicio' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">Nova redação</a>
+            </div>
         </div>
     </nav>
 
     <div class="container pt-3" aria-live="polite" aria-atomic="true">
         {% for message in messages %}
-            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
             </div>
@@ -33,6 +41,13 @@
     <main class="flex-grow-1">
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="nb-footer py-4 mt-5">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span class="fw-bold">Redação ENEM — correção por IA</span>
+            <span class="small">Avaliação automática. Não substitui a nota oficial do Inep.</span>
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     {% block extra_js %}{% endblock %}

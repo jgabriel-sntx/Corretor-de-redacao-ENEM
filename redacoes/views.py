@@ -8,6 +8,22 @@ from .services.ai_service import AIServiceError, avaliar_redacao
 from .services.ocr_service import OCRServiceError, extrair_texto_documento
 
 
+@require_http_methods(["GET"])
+def landing_page(request):
+    return render(request, "redacoes/landing.html")
+
+
+@require_http_methods(["GET"])
+def home(request):
+    redacoes = list(Redacao.objects.all()[:20])
+    concluidas = sum(1 for redacao in redacoes if redacao.resultado_json)
+    return render(
+        request,
+        "redacoes/home.html",
+        {"redacoes": redacoes, "total_concluidas": concluidas},
+    )
+
+
 @require_http_methods(["GET", "POST"])
 def pagina_inicial(request):
     if request.method == "GET":
