@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Corrigir redação | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container result-container">
+        <nav aria-label="Navegação" class="mb-4">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contas:professor_home' %}">Minhas turmas</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contas:aluno_historico' redacao.aluno.pk %}">{{ redacao.aluno.get_full_name|default:redacao.aluno.email }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Corrigir</li>
+            </ol>
+        </nav>
+
+        <span class="nb-tag mb-2">Correção do professor</span>
+        <h1 class="display-6 fw-bold mt-2 mb-1">{{ redacao.tema }}</h1>
+        <p class="text-secondary mb-4">Aluno: {{ redacao.aluno.get_full_name|default:redacao.aluno.email }}</p>
+
+        <section class="card review-card border-0 shadow-sm mb-4" aria-labelledby="texto-titulo">
+            <div class="card-body p-4">
+                <h2 id="texto-titulo" class="h5 fw-bold mb-3">Texto revisado</h2>
+                <div class="ocr-source-text rounded p-3">{{ redacao.texto_revisado|default:redacao.texto_original|linebreaksbr }}</div>
+            </div>
+        </section>
+
+        {% if not avaliacao_possivel %}
+            <div class="alert alert-warning" role="alert">
+                A IA não conseguiu atribuir notas a esta redação
+                {% if redacao.resultado_json.motivo_impedimento %}({{ redacao.resultado_json.motivo_impedimento }}){% endif %}.
+                Você ainda pode adicionar um comentário para o aluno.
+            </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                </div>
+            {% endif %}
+
+            {% if avaliacao_possivel %}
+                <section class="card review-card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Competência 1</h2>
+                        <p class="text-secondary small mb-3">{{ form.competencia_1_nota.help_text }}</p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label for="{{ form.competencia_1_nota.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_1_nota.label }}</label>
+                                {{ form.competencia_1_nota }}
+                            </div>
+                            <div class="col-md-9">
+                                <label for="{{ form.competencia_1_justificativa.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_1_justificativa.label }}</label>
+                                {{ form.competencia_1_justificativa }}
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_1_pontos_fortes.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_1_pontos_fortes.label }}</label>
+                                {{ form.competencia_1_pontos_fortes }}
+                                <div class="form-text">{{ form.competencia_1_pontos_fortes.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_1_melhorias.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_1_melhorias.label }}</label>
+                                {{ form.competencia_1_melhorias }}
+                                <div class="form-text">{{ form.competencia_1_melhorias.help_text }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card review-card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Competência 2</h2>
+                        <p class="text-secondary small mb-3">{{ form.competencia_2_nota.help_text }}</p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label for="{{ form.competencia_2_nota.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_2_nota.label }}</label>
+                                {{ form.competencia_2_nota }}
+                            </div>
+                            <div class="col-md-9">
+                                <label for="{{ form.competencia_2_justificativa.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_2_justificativa.label }}</label>
+                                {{ form.competencia_2_justificativa }}
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_2_pontos_fortes.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_2_pontos_fortes.label }}</label>
+                                {{ form.competencia_2_pontos_fortes }}
+                                <div class="form-text">{{ form.competencia_2_pontos_fortes.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_2_melhorias.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_2_melhorias.label }}</label>
+                                {{ form.competencia_2_melhorias }}
+                                <div class="form-text">{{ form.competencia_2_melhorias.help_text }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card review-card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Competência 3</h2>
+                        <p class="text-secondary small mb-3">{{ form.competencia_3_nota.help_text }}</p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label for="{{ form.competencia_3_nota.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_3_nota.label }}</label>
+                                {{ form.competencia_3_nota }}
+                            </div>
+                            <div class="col-md-9">
+                                <label for="{{ form.competencia_3_justificativa.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_3_justificativa.label }}</label>
+                                {{ form.competencia_3_justificativa }}
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_3_pontos_fortes.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_3_pontos_fortes.label }}</label>
+                                {{ form.competencia_3_pontos_fortes }}
+                                <div class="form-text">{{ form.competencia_3_pontos_fortes.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_3_melhorias.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_3_melhorias.label }}</label>
+                                {{ form.competencia_3_melhorias }}
+                                <div class="form-text">{{ form.competencia_3_melhorias.help_text }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card review-card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Competência 4</h2>
+                        <p class="text-secondary small mb-3">{{ form.competencia_4_nota.help_text }}</p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label for="{{ form.competencia_4_nota.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_4_nota.label }}</label>
+                                {{ form.competencia_4_nota }}
+                            </div>
+                            <div class="col-md-9">
+                                <label for="{{ form.competencia_4_justificativa.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_4_justificativa.label }}</label>
+                                {{ form.competencia_4_justificativa }}
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_4_pontos_fortes.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_4_pontos_fortes.label }}</label>
+                                {{ form.competencia_4_pontos_fortes }}
+                                <div class="form-text">{{ form.competencia_4_pontos_fortes.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_4_melhorias.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_4_melhorias.label }}</label>
+                                {{ form.competencia_4_melhorias }}
+                                <div class="form-text">{{ form.competencia_4_melhorias.help_text }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card review-card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Competência 5</h2>
+                        <p class="text-secondary small mb-3">{{ form.competencia_5_nota.help_text }}</p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label for="{{ form.competencia_5_nota.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_5_nota.label }}</label>
+                                {{ form.competencia_5_nota }}
+                            </div>
+                            <div class="col-md-9">
+                                <label for="{{ form.competencia_5_justificativa.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_5_justificativa.label }}</label>
+                                {{ form.competencia_5_justificativa }}
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_5_pontos_fortes.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_5_pontos_fortes.label }}</label>
+                                {{ form.competencia_5_pontos_fortes }}
+                                <div class="form-text">{{ form.competencia_5_pontos_fortes.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.competencia_5_melhorias.id_for_label }}" class="form-label fw-semibold">{{ form.competencia_5_melhorias.label }}</label>
+                                {{ form.competencia_5_melhorias }}
+                                <div class="form-text">{{ form.competencia_5_melhorias.help_text }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card review-card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Diagnóstico e proposta de intervenção</h2>
+                        <div class="mb-3">
+                            <label for="{{ form.diagnostico_geral.id_for_label }}" class="form-label fw-semibold">{{ form.diagnostico_geral.label }}</label>
+                            {{ form.diagnostico_geral }}
+                        </div>
+                        <div class="mb-4">
+                            <label for="{{ form.prioridades_melhoria.id_for_label }}" class="form-label fw-semibold">{{ form.prioridades_melhoria.label }}</label>
+                            {{ form.prioridades_melhoria }}
+                            <div class="form-text">{{ form.prioridades_melhoria.help_text }}</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.pi_presente.id_for_label }}" class="form-label fw-semibold">{{ form.pi_presente.label }}</label>
+                                {{ form.pi_presente }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.pi_agente.id_for_label }}" class="form-label fw-semibold">{{ form.pi_agente.label }}</label>
+                                {{ form.pi_agente }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.pi_acao.id_for_label }}" class="form-label fw-semibold">{{ form.pi_acao.label }}</label>
+                                {{ form.pi_acao }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.pi_meio_modo.id_for_label }}" class="form-label fw-semibold">{{ form.pi_meio_modo.label }}</label>
+                                {{ form.pi_meio_modo }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.pi_finalidade.id_for_label }}" class="form-label fw-semibold">{{ form.pi_finalidade.label }}</label>
+                                {{ form.pi_finalidade }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.pi_direitos_humanos.id_for_label }}" class="form-label fw-semibold">{{ form.pi_direitos_humanos.label }}</label>
+                                {{ form.pi_direitos_humanos }}
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.pi_detalhamento.id_for_label }}" class="form-label fw-semibold">{{ form.pi_detalhamento.label }}</label>
+                                {{ form.pi_detalhamento }}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+
+            <section class="card review-card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 fw-bold mb-4">Comentário do professor</h2>
+                    <label for="{{ form.comentario_professor.id_for_label }}" class="form-label fw-semibold">{{ form.comentario_professor.label }}</label>
+                    {{ form.comentario_professor }}
+                    <div class="form-text">{{ form.comentario_professor.help_text }}</div>
+                    {% for error in form.comentario_professor.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+            </section>
+
+            <div class="d-grid d-sm-flex justify-content-sm-end">
+                <button type="submit" class="btn btn-primary btn-lg px-4">Salvar correção</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas turmas | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <span class="nb-tag mb-2">Painel do professor</span>
+                <h1 class="display-6 fw-bold mt-2 mb-0">Minhas turmas</h1>
+            </div>
+            <a href="{% url 'contas:turma_criar' %}" class="btn btn-primary btn-lg flex-shrink-0">Criar turma</a>
+        </div>
+
+        {% if turmas %}
+            <div class="row g-3">
+                {% for turma in turmas %}
+                    <div class="col-md-6 col-lg-4">
+                        <a href="{% url 'contas:turma_detalhe' turma.pk %}" class="nb-choice-card d-block h-100">
+                            <h2 class="h5 fw-bold mb-2">{{ turma.nome }}</h2>
+                            <span class="text-secondary small d-block mb-2">Código</span>
+                            <span class="badge text-bg-secondary mb-3">{{ turma.codigo }}</span>
+                            <span class="text-secondary small d-block">{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize }}</span>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="nb-empty-state p-5 text-center">
+                <h2 class="h4 fw-bold mb-2">Você ainda não criou nenhuma turma</h2>
+                <p class="text-secondary mb-4">Crie uma turma para gerar o código que seus alunos usarão no cadastro.</p>
+                <a href="{% url 'contas:turma_criar' %}" class="btn btn-primary btn-lg">Criar minha primeira turma</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

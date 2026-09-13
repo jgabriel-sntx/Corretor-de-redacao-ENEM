@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ turma.nome }} | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container">
+        <nav aria-label="Navegação" class="mb-4">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contas:professor_home' %}">Minhas turmas</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ turma.nome }}</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h1 class="display-6 fw-bold mb-0">{{ turma.nome }}</h1>
+            </div>
+            <a href="{% url 'contas:turma_editar' turma.pk %}" class="btn btn-outline-primary flex-shrink-0">Editar turma</a>
+        </div>
+
+        <div class="nb-block p-4 mb-4">
+            <span class="text-secondary small text-uppercase fw-bold d-block mb-2">Código da turma — compartilhe com os alunos</span>
+            <span class="nb-code-badge">{{ turma.codigo }}</span>
+        </div>
+
+        <h2 class="h4 fw-bold mb-3">Alunos ({{ alunos.count }})</h2>
+
+        {% if alunos %}
+            <div class="d-flex flex-column gap-3">
+                {% for aluno in alunos %}
+                    <div class="nb-redacao-row p-3 p-md-4">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                            <div>
+                                <h3 class="h6 fw-bold mb-1">{{ aluno.get_full_name|default:aluno.email }}</h3>
+                                <span class="text-secondary small">{{ aluno.email }}</span>
+                            </div>
+                            <a href="{% url 'contas:aluno_historico' aluno.pk %}" class="btn btn-outline-primary flex-shrink-0">Ver histórico</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="nb-empty-state p-5 text-center">
+                <p class="mb-0 text-secondary">Nenhum aluno usou este código de turma ainda.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

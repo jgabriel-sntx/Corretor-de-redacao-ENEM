@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Minha conta | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container" style="max-width: 640px;">
+        <span class="nb-tag mb-2">Conta</span>
+        <h1 class="display-6 fw-bold mt-2 mb-4">Minha conta</h1>
+
+        <div class="d-flex flex-column gap-3 mb-4">
+            <div class="nb-account-row">
+                <div>
+                    <span class="text-secondary small d-block text-uppercase fw-bold">Nome</span>
+                    <span class="fw-semibold">{{ user.get_full_name|default:"Não informado" }}</span>
+                </div>
+                <a href="{% url 'contas:conta_editar_nome' %}" class="btn btn-outline-primary btn-sm">Editar nome</a>
+            </div>
+
+            <div class="nb-account-row">
+                <div>
+                    <span class="text-secondary small d-block text-uppercase fw-bold">E-mail</span>
+                    <span class="fw-semibold">{{ user.email }}</span>
+                </div>
+                <a href="{% url 'contas:conta_editar_email' %}" class="btn btn-outline-primary btn-sm">Alterar e-mail</a>
+            </div>
+
+            <div class="nb-account-row">
+                <div>
+                    <span class="text-secondary small d-block text-uppercase fw-bold">Senha</span>
+                    <span class="fw-semibold">••••••••</span>
+                </div>
+                <a href="{% url 'account_change_password' %}" class="btn btn-outline-primary btn-sm">Alterar senha</a>
+            </div>
+
+            <div class="nb-account-row">
+                <div>
+                    <span class="text-secondary small d-block text-uppercase fw-bold">Perfil</span>
+                    <span class="badge text-bg-secondary">{{ user.get_tipo_display }}</span>
+                    {% if user.is_aluno and user.turma %}
+                        <span class="text-secondary small ms-2">Turma: {{ user.turma.nome }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">Sair da conta</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

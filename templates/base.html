@@ -23,8 +23,18 @@
             </a>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{% url 'redacoes:landing' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'landing' %}active{% endif %}">Início</a>
-                <a href="{% url 'redacoes:home' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Minhas redações</a>
-                <a href="{% url 'redacoes:inicio' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">Nova redação</a>
+                {% if user.is_authenticated %}
+                    {% if user.is_aluno %}
+                        <a href="{% url 'redacoes:home' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Minhas redações</a>
+                        <a href="{% url 'redacoes:inicio' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">Nova redação</a>
+                    {% elif user.is_professor %}
+                        <a href="{% url 'contas:professor_home' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'professor_home' %}active{% endif %}">Minhas turmas</a>
+                    {% endif %}
+                    <a href="{% url 'contas:conta' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'conta' %}active{% endif %}">Conta</a>
+                {% else %}
+                    <a href="{% url 'account_login' %}" class="nb-nav-link">Entrar</a>
+                    <a href="{% url 'contas:escolha_cadastro' %}" class="nb-nav-link">Cadastrar</a>
+                {% endif %}
             </div>
         </div>
     </nav>

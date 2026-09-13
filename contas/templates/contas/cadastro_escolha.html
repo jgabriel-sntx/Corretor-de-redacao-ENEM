@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Criar conta | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="nb-tag mb-3">Cadastro</span>
+            <h1 class="display-6 fw-bold mt-3">Como você vai usar a plataforma?</h1>
+            <p class="text-secondary">Escolha o tipo de conta para continuar.</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-5">
+                <a href="{% url 'contas:cadastro_aluno' %}" class="nb-choice-card h-100 text-center">
+                    <div class="nb-choice-icon mx-auto">🎓</div>
+                    <h2 class="h4 fw-bold">Sou aluno</h2>
+                    <p class="mb-0 text-secondary">Envie redações, acompanhe suas notas e veja os comentários do seu professor.</p>
+                </a>
+            </div>
+            <div class="col-md-5">
+                <a href="{% url 'contas:cadastro_professor' %}" class="nb-choice-card h-100 text-center">
+                    <div class="nb-choice-icon mx-auto">🧑‍🏫</div>
+                    <h2 class="h4 fw-bold">Sou professor</h2>
+                    <p class="mb-0 text-secondary">Crie turmas, acompanhe seus alunos e revise as correções da IA.</p>
+                </a>
+            </div>
+        </div>
+        <p class="text-center text-secondary mt-4">
+            Já tem uma conta? <a href="{% url 'account_login' %}">Entrar</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

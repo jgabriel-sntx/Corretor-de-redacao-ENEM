@@ -151,6 +151,16 @@
                 {% endif %}
             </div>
         </section>
+
+        {% if redacao.comentario_professor %}
+            <section class="nb-block p-4 p-md-5 mt-4" style="background: var(--nb-yellow);" aria-labelledby="comentario-professor-titulo">
+                <span class="nb-tag mb-3">Comentário do professor</span>
+                <h2 id="comentario-professor-titulo" class="h4 fw-bold mt-2 mb-3">
+                    {% if redacao.corrigido_por %}{{ redacao.corrigido_por.get_full_name|default:redacao.corrigido_por.email }}{% else %}Professor{% endif %}
+                </h2>
+                <p class="mb-0" style="white-space: pre-line;">{{ redacao.comentario_professor }}</p>
+            </section>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

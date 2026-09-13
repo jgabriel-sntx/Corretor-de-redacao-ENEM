@@ -23,8 +23,17 @@
                     nas cinco competências do ENEM, com pontos fortes, melhorias e a nota estimada.
                 </p>
                 <div class="d-flex flex-wrap gap-3">
-                    <a href="{% url 'redacoes:inicio' %}" class="btn btn-primary btn-lg px-4 py-3">Enviar minha redação</a>
-                    <a href="{% url 'redacoes:home' %}" class="btn btn-outline-primary btn-lg px-4 py-3">Ver minhas redações</a>
+                    {% if user.is_authenticated %}
+                        {% if user.is_aluno %}
+                            <a href="{% url 'redacoes:inicio' %}" class="btn btn-primary btn-lg px-4 py-3">Enviar minha redação</a>
+                            <a href="{% url 'redacoes:home' %}" class="btn btn-outline-primary btn-lg px-4 py-3">Ver minhas redações</a>
+                        {% else %}
+                            <a href="{% url 'contas:professor_home' %}" class="btn btn-primary btn-lg px-4 py-3">Ir para minhas turmas</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'contas:escolha_cadastro' %}" class="btn btn-primary btn-lg px-4 py-3">Cadastre-se</a>
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg px-4 py-3">Entrar</a>
+                    {% endif %}
                 </div>
             </div>
             <div class="col-lg-5 d-none d-lg-block">
@@ -115,7 +124,11 @@
     <div class="container text-center">
         <h2 class="display-6 fw-bold mb-3">Pronto para saber a sua nota?</h2>
         <p class="fs-5 mb-4">Não inclua nome, CPF, endereço ou outros dados pessoais na redação enviada.</p>
-        <a href="{% url 'redacoes:inicio' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Começar agora</a>
+        {% if user.is_authenticated and user.is_aluno %}
+            <a href="{% url 'redacoes:inicio' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Começar agora</a>
+        {% elif not user.is_authenticated %}
+            <a href="{% url 'contas:escolha_cadastro' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Começar agora</a>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

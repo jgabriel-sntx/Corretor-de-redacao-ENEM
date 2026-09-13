@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
 from django.db import models
@@ -12,6 +13,12 @@ class Redacao(models.Model):
         CONCLUIDA = "concluida", "Concluída"
         ERRO = "erro", "Erro"
 
+    aluno = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="aluno",
+        on_delete=models.CASCADE,
+        related_name="redacoes",
+    )
     tema = models.CharField(
         "tema",
         max_length=255,
@@ -34,6 +41,16 @@ class Redacao(models.Model):
         default=Status.ENVIADA,
         db_index=True,
     )
+    comentario_professor = models.TextField("comentário do professor", blank=True)
+    corrigido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="corrigido por",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="redacoes_corrigidas",
+    )
+    corrigido_em = models.DateTimeField("corrigido em", null=True, blank=True)
     criada_em = models.DateTimeField("criada em", auto_now_add=True)
     atualizada_em = models.DateTimeField("atualizada em", auto_now=True)
 

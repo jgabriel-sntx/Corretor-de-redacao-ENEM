@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Alterar e-mail | Corretor ENEM{% endblock %}
+
+{% block content %}
+<section class="py-4 py-lg-5">
+    <div class="container" style="max-width: 480px;">
+        <nav aria-label="Navegação" class="mb-4">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contas:conta' %}">Minha conta</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Alterar e-mail</li>
+            </ol>
+        </nav>
+
+        <div class="card review-card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 fw-bold mb-4">Alterar e-mail</h1>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for campo in form %}
+                        <div class="mb-4">
+                            <label for="{{ campo.id_for_label }}" class="form-label fw-semibold">{{ campo.label }}</label>
+                            {{ campo }}
+                            {% for error in campo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <a href="{% url 'contas:conta' %}" class="btn btn-outline-primary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

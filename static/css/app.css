@@ -609,6 +609,66 @@ textarea.form-control {
 .nb-status-erro { background: var(--nb-red); }
 
 /* --------------------------------------------------------------------
+   Contas (cadastro / conta / turmas)
+   -------------------------------------------------------------------- */
+.nb-choice-card {
+    background: var(--nb-white);
+    border: var(--nb-border-lg) solid var(--nb-ink);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow-x) var(--nb-shadow-y) 0 var(--nb-ink);
+    display: block;
+    padding: 2rem;
+    text-decoration: none;
+    color: var(--nb-ink);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nb-choice-card:hover {
+    box-shadow: 9px 9px 0 var(--nb-ink);
+    transform: translate(-3px, -3px);
+    color: var(--nb-ink);
+}
+
+.nb-choice-icon {
+    align-items: center;
+    background: var(--nb-yellow);
+    border: var(--nb-border) solid var(--nb-ink);
+    border-radius: 12px;
+    display: inline-flex;
+    font-size: 2rem;
+    height: 4rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+    width: 4rem;
+}
+
+.nb-code-badge {
+    background: var(--nb-yellow);
+    border: var(--nb-border-lg) solid var(--nb-ink);
+    border-radius: 10px;
+    box-shadow: 4px 4px 0 var(--nb-ink);
+    display: inline-block;
+    font-family: "Space Mono", "Courier New", monospace;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 0.5rem 1.25rem;
+}
+
+.nb-account-row {
+    align-items: center;
+    background: var(--nb-white);
+    border: var(--nb-border) solid var(--nb-ink);
+    border-radius: 12px;
+    box-shadow: 4px 4px 0 var(--nb-ink);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+}
+
+/* --------------------------------------------------------------------
    Footer
    -------------------------------------------------------------------- */
 .nb-footer {

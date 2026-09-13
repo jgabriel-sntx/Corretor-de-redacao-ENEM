@@ -31,6 +31,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "contas.apps.ContasConfig",
     "redacoes.apps.RedacoesConfig",
 ]
 
@@ -40,6 +44,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -91,6 +96,38 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = "contas.Usuario"
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# django-allauth: login apenas por e-mail/senha, sem verificação por e-mail
+# (não há integração com nenhum serviço de envio de e-mail neste momento).
+# O cadastro nativo do allauth fica desativado (ver contas.adapters.AccountAdapter):
+# o cadastro é feito pelas views customizadas em `contas`.
+ACCOUNT_ADAPTER = "contas.adapters.AccountAdapter"
+ACCOUNT_FORMS = {
+    "login": "contas.forms.LoginForm",
+    "change_password": "contas.forms.ChangePasswordForm",
+}
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGOUT_ON_GET = False
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "contas:pos_login"
+ACCOUNT_LOGOUT_REDIRECT_URL = "redacoes:landing"
+
+# Nenhum serviço de e-mail real está configurado: os e-mails do allauth
+# (ex.: recuperação de senha) só são impressos no console em desenvolvimento.
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Opções seguras para ativação explícita atrás de HTTPS em produção.
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT")
