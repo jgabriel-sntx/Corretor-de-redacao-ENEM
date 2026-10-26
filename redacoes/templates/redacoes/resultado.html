@@ -35,7 +35,7 @@
                     <div>
                         <span class="text-secondary small">Nota total</span>
                         <h2 id="nota-total-titulo" class="h3 fw-bold mb-2">Avaliação pelas cinco competências</h2>
-                        <p class="text-secondary mb-0">Avaliação por IA. Não equivale à nota oficial do Inep.</p>
+                        <p class="text-secondary mb-0">{% if redacao.resultado_professor %}Notas revisadas pelo professor com base na avaliação da IA. Não equivalem à nota oficial do Inep.{% else %}Avaliação por IA. Não equivale à nota oficial do Inep.{% endif %}</p>
                     </div>
                 </div>
             </section>

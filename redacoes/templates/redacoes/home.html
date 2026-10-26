@@ -17,7 +17,7 @@
             <div class="col-6 col-lg-3">
                 <div class="nb-stat" style="background: var(--nb-yellow);">
                     <span class="small fw-bold text-uppercase">Total enviadas</span>
-                    <strong>{{ redacoes|length }}</strong>
+                    <strong>{{ total_enviadas }}</strong>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
@@ -42,7 +42,7 @@
                                 </div>
                             </div>
                             <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-                                {% if redacao.resultado_json %}
+                                {% if redacao.resultado_final %}
                                     <a href="{% url 'redacoes:resultado' redacao.pk %}" class="btn btn-primary">Ver resultado</a>
                                 {% else %}
                                     <a href="{% url 'redacoes:revisao' redacao.pk %}" class="btn btn-outline-primary">Continuar revisão</a>
@@ -52,6 +52,36 @@
                     </div>
                 {% endfor %}
             </div>
+
+            {% if pagina.paginator.num_pages > 1 %}
+                <nav class="mt-4" aria-label="Paginação das redações">
+                    <ul class="pagination nb-pagination justify-content-center flex-wrap mb-2">
+                        {% if pagina.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?pagina={{ pagina.previous_page_number }}" aria-label="Página anterior">&laquo;</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link" aria-hidden="true">&laquo;</span></li>
+                        {% endif %}
+                        {% for numero in intervalo_paginas %}
+                            {% if numero == pagina.paginator.ELLIPSIS %}
+                                <li class="page-item disabled"><span class="page-link">{{ numero }}</span></li>
+                            {% elif numero == pagina.number %}
+                                <li class="page-item active" aria-current="page"><span class="page-link">{{ numero }}</span></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="?pagina={{ numero }}">{{ numero }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if pagina.has_next %}
+                            <li class="page-item"><a class="page-link" href="?pagina={{ pagina.next_page_number }}" aria-label="Próxima página">&raquo;</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link" aria-hidden="true">&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                    <p class="text-center text-secondary small mb-0">
+                        Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}
+                        · {{ pagina.start_index }}–{{ pagina.end_index }} de {{ total_enviadas }} redações
+                    </p>
+                </nav>
+            {% endif %}
         {% else %}
             <div class="nb-empty-state p-5 text-center">
                 <h2 class="h4 fw-bold mb-2">Você ainda não enviou nenhuma redação</h2>

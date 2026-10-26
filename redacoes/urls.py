@@ -11,6 +11,7 @@ urlpatterns = [
     path("nova/", views.pagina_inicial, name="inicio"),
     path("redacoes/<int:pk>/revisao/", views.revisar_redacao, name="revisao"),
     path("redacoes/<int:pk>/resultado/", views.resultado_redacao, name="resultado"),
+    path("redacoes/<int:pk>/apagar/", views.apagar_redacao, name="apagar"),
     path(
         "professor/redacoes/<int:pk>/",
         views.professor_corrigir_redacao,

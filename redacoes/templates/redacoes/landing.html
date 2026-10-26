@@ -1,26 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Corretor de Redações ENEM — correção por IA{% endblock %}
+{% block title %}Redaí — correção de redação do ENEM por IA, com acompanhamento do professor{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
-<div class="nb-marquee py-2">
-    <div class="nb-marquee-track">
-        &nbsp;COMPETÊNCIA 1 &bull; COMPETÊNCIA 2 &bull; COMPETÊNCIA 3 &bull; COMPETÊNCIA 4 &bull; COMPETÊNCIA 5 &bull; NOTA ATÉ 1000 &bull;
-        COMPETÊNCIA 1 &bull; COMPETÊNCIA 2 &bull; COMPETÊNCIA 3 &bull; COMPETÊNCIA 4 &bull; COMPETÊNCIA 5 &bull; NOTA ATÉ 1000 &bull;
-    </div>
-</div>
-
 <section class="hero-section py-5">
     <div class="container py-4">
         <div class="row align-items-center g-5">
-            <div class="col-lg-7">
-                <span class="nb-tag mb-3">Correção por Inteligência Artificial</span>
-                <h1 class="display-3 fw-bold mt-3 mb-3">
-                    Sua redação do <span class="text-decoration-underline">ENEM</span>, avaliada em minutos.
-                </h1>
-                <p class="fs-5 mb-4">
-                    Envie uma foto ou o texto da sua redação e receba uma correção estruturada
-                    nas cinco competências do ENEM, com pontos fortes, melhorias e a nota estimada.
+            <div class="col-lg-6">
+                <span class="rd-kicker"><i class="bi bi-pencil-fill"></i> corrigida em minutos, revisada por gente de verdade</span>
+                <h1 class="rd-h1">Cada redação corrigida como se fosse a última antes da prova.</h1>
+                <p class="rd-lead">
+                    Envie o texto ou uma foto da folha. Em minutos, veja a nota nas cinco
+                    competências do ENEM, o que já está bom, o que falta melhorar — e o
+                    comentário do seu professor, quando ele revisar.
                 </p>
                 <div class="d-flex flex-wrap gap-3">
                     {% if user.is_authenticated %}
@@ -31,21 +27,26 @@
                             <a href="{% url 'contas:professor_home' %}" class="btn btn-primary btn-lg px-4 py-3">Ir para minhas turmas</a>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'contas:escolha_cadastro' %}" class="btn btn-primary btn-lg px-4 py-3">Cadastre-se</a>
+                        <a href="{% url 'contas:escolha_cadastro' %}" class="btn btn-primary btn-lg px-4 py-3">Corrigir minha redação</a>
                         <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg px-4 py-3">Entrar</a>
                     {% endif %}
                 </div>
             </div>
-            <div class="col-lg-5 d-none d-lg-block">
-                <div class="position-relative" style="height: 22rem;">
-                    <div class="nb-blob position-absolute top-0 start-0" style="width: 16rem; height: 16rem;"></div>
-                    <div class="nb-block position-absolute bottom-0 end-0 p-4" style="width: 15rem;">
-                        <span class="text-secondary small fw-bold text-uppercase">Nota total</span>
-                        <div class="d-flex align-items-baseline gap-2">
-                            <strong class="display-4 fw-bold">920</strong>
-                            <span class="fw-bold">/1000</span>
-                        </div>
-                        <span class="badge text-bg-secondary mt-2">Avaliação concluída</span>
+            <div class="col-lg-6">
+                <div class="corrected-sheet">
+                    <div class="corrected-sheet__ruled">
+                        <p>Ao longo da história, a leitura consolidou-se como
+                            <span class="rd-mark rd-mark--circle">instrumento</span> essencial para a
+                            formação crítica do cidadão.</p>
+                        <p class="mt-0">Em uma sociedade marcada por desigualdades no
+                            <span class="rd-mark rd-mark--underline">acesso à informação</span>, promover
+                            esse hábito é também condição de cidadania.</p>
+                        <p class="corrected-sheet__fade mt-0">Diante disso, cabe ao poder público e à escola...</p>
+                    </div>
+                    <span class="margin-note">bom repertório aqui</span>
+                    <div class="grade-stamp">
+                        <span class="grade-stamp__value">880</span>
+                        <span class="grade-stamp__of">/1000</span>
                     </div>
                 </div>
             </div>
@@ -53,81 +54,103 @@
     </div>
 </section>
 
-<section class="py-5">
+<section class="rd-section">
     <div class="container">
-        <div class="text-center mb-5">
-            <span class="nb-tag mb-3">Como funciona</span>
-            <h2 class="display-6 fw-bold mt-3">Três passos até a sua nota</h2>
+        <h2 class="rd-h2">Da folha à nota, sem enrolação.</h2>
+        <div class="rd-steps">
+            <div class="rd-step">
+                <span class="rd-step__num">1</span>
+                <h3>Envie sua redação</h3>
+                <p>Tire uma foto do texto manuscrito ou cole a redação digitada. Você escolhe.</p>
+            </div>
+            <div class="rd-step">
+                <span class="rd-step__num">2</span>
+                <h3>Revise a transcrição</h3>
+                <p>Confira o texto reconhecido por OCR e ajuste o que for preciso antes da correção.</p>
+            </div>
+            <div class="rd-step">
+                <span class="rd-step__num">3</span>
+                <h3>Receba a correção</h3>
+                <p>Nota por competência, pontos fortes, prioridades de melhoria — e o comentário do seu professor.</p>
+            </div>
         </div>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="nb-step">
-                    <div class="nb-step-number">1</div>
-                    <h3 class="h5 fw-bold">Envie sua redação</h3>
-                    <p class="mb-0">Tire uma foto do texto manuscrito ou cole a redação digitada.</p>
+    </div>
+</section>
+
+<section class="rd-section pt-0">
+    <div class="container">
+        <h2 class="rd-h2">Dos dois lados da caneta vermelha.</h2>
+        <div class="rd-panels">
+            <div class="rd-panel rd-panel--aluno">
+                <h3><i class="bi bi-mortarboard-fill"></i> Para alunos</h3>
+                <ul>
+                    <li>Entre com o código da turma e comece a enviar redações no mesmo minuto.</li>
+                    <li>Acompanhe sua evolução nota após nota, competência por competência.</li>
+                    <li>Veja o comentário do seu professor direto no resultado, quando ele revisar.</li>
+                </ul>
+            </div>
+            <div class="rd-panel rd-panel--professor">
+                <h3><i class="bi bi-easel2-fill"></i> Para professores</h3>
+                <ul>
+                    <li>Crie uma turma em segundos e compartilhe o código com seus alunos.</li>
+                    <li>Acompanhe o histórico de cada aluno em um único painel.</li>
+                    <li>Ajuste a nota da IA e deixe seu próprio comentário em cada redação.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="rd-section pt-0">
+    <div class="container">
+        <h2 class="rd-h2">O mesmo critério que cai na prova.</h2>
+        <div class="rd-ledger">
+            <div class="rd-ledger__row">
+                <span class="rd-ledger__index">01</span>
+                <div>
+                    <h3>Leitura por OCR</h3>
+                    <p>Envie uma foto da redação manuscrita e deixe o reconhecimento de texto trabalhar por você.</p>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="nb-step">
-                    <div class="nb-step-number">2</div>
-                    <h3 class="h5 fw-bold">Revise a transcrição</h3>
-                    <p class="mb-0">Confira o texto reconhecido por OCR e corrija o que for necessário.</p>
+            <div class="rd-ledger__row">
+                <span class="rd-ledger__index">02</span>
+                <div>
+                    <h3>Cinco competências</h3>
+                    <p>Avaliação estruturada seguindo os mesmos critérios oficiais do ENEM.</p>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="nb-step">
-                    <div class="nb-step-number">3</div>
-                    <h3 class="h5 fw-bold">Receba a correção</h3>
-                    <p class="mb-0">Veja a nota por competência, pontos fortes e o que melhorar.</p>
+            <div class="rd-ledger__row">
+                <span class="rd-ledger__index">03</span>
+                <div>
+                    <h3>Pontos fortes</h3>
+                    <p>Entenda exatamente o que já está bom no seu texto.</p>
+                </div>
+            </div>
+            <div class="rd-ledger__row">
+                <span class="rd-ledger__index">04</span>
+                <div>
+                    <h3>Plano de melhoria</h3>
+                    <p>Prioridades claras para evoluir na sua próxima redação.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="py-5">
+<section class="rd-cta">
     <div class="container">
-        <div class="row g-4">
-            <div class="col-md-6 col-lg-3">
-                <div class="nb-feature-card">
-                    <div class="nb-feature-icon" style="background: var(--nb-blue);">📷</div>
-                    <h3 class="h6 fw-bold text-uppercase">Leitura por OCR</h3>
-                    <p class="small mb-0">Envie uma foto da redação manuscrita e deixe o reconhecimento de texto trabalhar por você.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="nb-feature-card">
-                    <div class="nb-feature-icon" style="background: var(--nb-pink);">🧭</div>
-                    <h3 class="h6 fw-bold text-uppercase">5 competências</h3>
-                    <p class="small mb-0">Avaliação estruturada seguindo os mesmos critérios oficiais do ENEM.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="nb-feature-card">
-                    <div class="nb-feature-icon" style="background: var(--nb-green);">✅</div>
-                    <h3 class="h6 fw-bold text-uppercase">Pontos fortes</h3>
-                    <p class="small mb-0">Entenda exatamente o que já está bom no seu texto.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="nb-feature-card">
-                    <div class="nb-feature-icon" style="background: var(--nb-orange);">🎯</div>
-                    <h3 class="h6 fw-bold text-uppercase">Plano de melhoria</h3>
-                    <p class="small mb-0">Prioridades claras para evoluir na sua próxima redação.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="nb-cta-band py-5">
-    <div class="container text-center">
-        <h2 class="display-6 fw-bold mb-3">Pronto para saber a sua nota?</h2>
-        <p class="fs-5 mb-4">Não inclua nome, CPF, endereço ou outros dados pessoais na redação enviada.</p>
-        {% if user.is_authenticated and user.is_aluno %}
-            <a href="{% url 'redacoes:inicio' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Começar agora</a>
-        {% elif not user.is_authenticated %}
-            <a href="{% url 'contas:escolha_cadastro' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Começar agora</a>
+        {% if user.is_authenticated and user.is_professor %}
+            <h2>Sua turma está esperando a próxima correção.</h2>
+            <p>Acompanhe o histórico de cada aluno e revise as correções da IA no painel da sua turma.</p>
+            <a href="{% url 'contas:professor_home' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Ir para minhas turmas</a>
+        {% else %}
+            <h2>Sua próxima redação já pode ter nota.</h2>
+            <p>Leva menos de um minuto para criar sua conta. Não inclua nome, CPF, endereço ou outros dados pessoais na redação enviada.</p>
+            {% if user.is_authenticated %}
+                <a href="{% url 'redacoes:inicio' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Enviar redação</a>
+            {% else %}
+                <a href="{% url 'contas:escolha_cadastro' %}" class="btn btn-lg px-5 py-3" style="background: var(--nb-yellow); border-color: var(--nb-yellow);">Criar conta grátis</a>
+            {% endif %}
         {% endif %}
     </div>
 </section>

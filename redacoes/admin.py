@@ -22,6 +22,7 @@ class RedacaoAdmin(admin.ModelAdmin):
                     "texto_transcrito",
                     "texto_revisado",
                     "resultado_json",
+                    "resultado_professor",
                 )
             },
         ),

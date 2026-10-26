@@ -1,6 +1,7 @@
 # Ambiente virtual e variáveis locais
 .venv/
 .env
+.claude/
 
 # Python
 __pycache__/

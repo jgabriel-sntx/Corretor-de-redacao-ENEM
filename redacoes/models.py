@@ -33,7 +33,10 @@ class Redacao(models.Model):
     texto_original = models.TextField("texto original", blank=True)
     texto_transcrito = models.TextField("texto transcrito", blank=True)
     texto_revisado = models.TextField("texto revisado", blank=True)
-    resultado_json = models.JSONField("resultado estruturado", default=dict, blank=True)
+    resultado_json = models.JSONField("resultado da IA", default=dict, blank=True)
+    resultado_professor = models.JSONField(
+        "correção do professor", default=dict, blank=True
+    )
     status = models.CharField(
         "status",
         max_length=20,
@@ -72,6 +75,11 @@ class Redacao(models.Model):
             raise ValidationError(
                 "Informe uma imagem da redação ou o texto original."
             )
+
+    @property
+    def resultado_final(self):
+        """Correção exibida: a do professor tem prioridade sobre a da IA."""
+        return self.resultado_professor or self.resultado_json
 
     def __str__(self):
         return self.tema

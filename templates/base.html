@@ -4,22 +4,23 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Envie sua redação do ENEM para análise.">
-    <title>{% block title %}Corretor de Redações ENEM{% endblock %}</title>
+    <meta name="description" content="Redaí: envie sua redação do ENEM e receba a correção por IA nas cinco competências, com acompanhamento do seu professor.">
+    <title>{% block title %}Redaí — correção de redação do ENEM{% endblock %}</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/isotipo.svg' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
     <nav class="navbar navbar-expand-md sticky-top" aria-label="Navegação principal">
         <div class="container py-3 flex-wrap gap-3">
-            <a class="navbar-brand d-flex align-items-center gap-2 mb-0" href="{% url 'redacoes:landing' %}">
-                <span class="brand-mark" aria-hidden="true">E</span>
-                <span>Redação ENEM</span>
+            <a class="navbar-brand d-flex align-items-center mb-0" href="{% url 'redacoes:landing' %}">
+                <img src="{% static 'img/logotipo.svg' %}" alt="Redaí" class="brand-logo">
             </a>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{% url 'redacoes:landing' %}" class="nb-nav-link {% if request.resolver_match.url_name == 'landing' %}active{% endif %}">Início</a>
@@ -54,8 +55,11 @@
 
     <footer class="nb-footer py-4 mt-5">
         <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span class="fw-bold">Redação ENEM — correção por IA</span>
-            <span class="small">Avaliação automática. Não substitui a nota oficial do Inep.</span>
+            <span class="fw-bold d-flex align-items-center gap-2">
+                <img src="{% static 'img/isotipo.svg' %}" alt="" class="footer-mark" aria-hidden="true">
+                Redaí — correção de redação por IA ® 2026 todos os direitos reservados
+            </span>
+            <span class="small">Avaliação automática, rapida e fácil</span>
         </div>
     </footer>
 

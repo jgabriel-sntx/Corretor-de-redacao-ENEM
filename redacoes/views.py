@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -12,6 +13,9 @@ from .services.ai_service import AIServiceError, avaliar_redacao
 from .services.ocr_service import OCRServiceError, extrair_texto_documento
 
 
+REDACOES_POR_PAGINA = 10
+
+
 @require_http_methods(["GET"])
 def landing_page(request):
     return render(request, "redacoes/landing.html")
@@ -20,12 +24,22 @@ def landing_page(request):
 @aluno_required
 @require_http_methods(["GET"])
 def home(request):
-    redacoes = list(Redacao.objects.filter(aluno=request.user)[:20])
-    concluidas = sum(1 for redacao in redacoes if redacao.resultado_json)
+    todas = Redacao.objects.filter(aluno=request.user)
+    paginador = Paginator(todas, REDACOES_POR_PAGINA)
+    pagina = paginador.get_page(request.GET.get("pagina"))
+    concluidas = todas.exclude(resultado_json={}, resultado_professor={}).count()
     return render(
         request,
         "redacoes/home.html",
-        {"redacoes": redacoes, "total_concluidas": concluidas},
+        {
+            "redacoes": pagina,
+            "pagina": pagina,
+            "intervalo_paginas": paginador.get_elided_page_range(
+                pagina.number, on_each_side=2, on_ends=1
+            ),
+            "total_enviadas": paginador.count,
+            "total_concluidas": concluidas,
+        },
     )
 
 
@@ -91,11 +105,23 @@ def revisar_redacao(request, pk):
     )
 
 
+@aluno_required
+@require_http_methods(["POST"])
+def apagar_redacao(request, pk):
+    redacao = get_object_or_404(Redacao, pk=pk, aluno=request.user)
+    tema = redacao.tema
+    if redacao.imagem:
+        redacao.imagem.delete(save=False)
+    redacao.delete()
+    messages.success(request, f"Redação “{tema}” apagada.")
+    return redirect("redacoes:home")
+
+
 @login_required
 @require_http_methods(["GET"])
 def resultado_redacao(request, pk):
     redacao = get_object_or_404(Redacao, pk=pk, aluno=request.user)
-    if not redacao.resultado_json:
+    if not redacao.resultado_final:
         messages.warning(
             request,
             "Esta redação ainda não possui uma avaliação concluída.",
@@ -105,7 +131,7 @@ def resultado_redacao(request, pk):
     return render(
         request,
         "redacoes/resultado.html",
-        {"redacao": redacao, "resultado": redacao.resultado_json},
+        {"redacao": redacao, "resultado": redacao.resultado_final},
     )
 
 
@@ -115,7 +141,9 @@ def professor_corrigir_redacao(request, pk):
     redacao = get_object_or_404(
         Redacao, pk=pk, aluno__turma__professor=request.user
     )
-    avaliacao_possivel = bool(redacao.resultado_json.get("avaliacao_possivel"))
+    # O professor parte da avaliação da IA (ou da própria correção anterior).
+    base = redacao.resultado_final
+    avaliacao_possivel = bool(base.get("avaliacao_possivel"))
 
     if request.method == "POST":
         form = CorrigirRedacaoForm(request.POST)
@@ -129,13 +157,13 @@ def professor_corrigir_redacao(request, pk):
 
         if form_valido:
             if avaliacao_possivel:
-                redacao.resultado_json = form.aplicar_ao_resultado(redacao.resultado_json)
+                redacao.resultado_professor = form.aplicar_ao_resultado(base)
             redacao.comentario_professor = form.cleaned_data["comentario_professor"].strip()
             redacao.corrigido_por = request.user
             redacao.corrigido_em = timezone.now()
             redacao.save(
                 update_fields=[
-                    "resultado_json",
+                    "resultado_professor",
                     "comentario_professor",
                     "corrigido_por",
                     "corrigido_em",
@@ -198,6 +226,12 @@ def _salvar_e_avaliar(request, redacao: Redacao) -> bool:
 
     redacao.resultado_json = resultado
     redacao.save(update_fields=["resultado_json", "atualizada_em"])
+    if redacao.resultado_professor:
+        messages.info(
+            request,
+            "Avaliação da IA atualizada. A correção do professor continua "
+            "valendo como resultado final.",
+        )
     messages.success(
         request,
         "Texto revisado salvo e avaliação estruturada concluída.",

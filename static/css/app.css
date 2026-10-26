@@ -3,15 +3,22 @@
    ========================================================================== */
 
 :root {
-    --nb-ink: #0d0d0d;
-    --nb-paper: #fdf6ec;
-    --nb-yellow: #ffd60a;
+    /* Paleta oficial Redaí */
+    --nb-ink: #111111;      /* Tinta */
+    --nb-paper: #fdf3e7;    /* Papel */
+    --nb-yellow: #ffd60a;   /* Amarelo redaí */
+    --nb-blue: #2c3be0;     /* Ação */
+
+    /* acentos decorativos secundários (fora da paleta oficial, uso pontual) */
     --nb-pink: #ff5da2;
-    --nb-blue: #3d5afe;
     --nb-green: #2ee6a6;
     --nb-orange: #ff7a3d;
     --nb-red: #ff3b3b;
     --nb-white: #ffffff;
+
+    /* vermelho de caneta de correção — versão legível para texto/ícones pequenos;
+       --nb-red (mais vibrante) fica reservado às marcas ilustrativas da folha corrigida */
+    --rd-red-text: #b3261e;
 
     --nb-border: 3px;
     --nb-border-lg: 4px;
@@ -21,7 +28,7 @@
 
     /* legacy tokens kept so any leftover references degrade gracefully */
     --app-primary: var(--nb-blue);
-    --app-primary-dark: #2438c4;
+    --app-primary-dark: #212eb3;
     --app-background: var(--nb-paper);
     --app-border: var(--nb-ink);
 }
@@ -73,18 +80,11 @@ a {
 
 .navbar-brand {
     color: var(--nb-ink) !important;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: -0.02em;
 }
 
-.brand-mark {
-    background: var(--nb-ink) !important;
-    border: var(--nb-border) solid var(--nb-ink);
-    border-radius: 8px !important;
-    box-shadow: 3px 3px 0 var(--nb-white), 3px 3px 0 3px var(--nb-ink);
-    color: var(--nb-yellow) !important;
-    font-weight: 900;
+.brand-logo {
+    height: 2.25rem;
+    width: auto;
 }
 
 .nb-nav-link {
@@ -467,96 +467,396 @@ textarea.form-control {
     font-size: 0.8rem;
 }
 
-.nb-feature-card {
-    background: var(--nb-white);
-    border: var(--nb-border) solid var(--nb-ink);
-    border-radius: var(--nb-radius);
-    box-shadow: var(--nb-shadow-x) var(--nb-shadow-y) 0 var(--nb-ink);
-    height: 100%;
-    padding: 1.75rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.nb-feature-card:hover {
-    box-shadow: 9px 9px 0 var(--nb-ink);
-    transform: translate(-3px, -3px);
-}
-
-.nb-feature-icon {
+/* ----------------------------------------------------------------------
+   Landing (Redaí) — a página trata o hero como uma folha de redação
+   corrigida: marcas de caneta vermelha, papel pautado, carimbo de nota.
+   O vermelho vibrante (--nb-red) fica só nessa folha; o resto da página
+   usa --rd-red-text (mais escuro) como acento estrutural discreto.
+   ---------------------------------------------------------------------- */
+.rd-kicker {
     align-items: center;
-    border: var(--nb-border) solid var(--nb-ink);
-    border-radius: 10px;
+    color: var(--rd-red-text);
     display: inline-flex;
-    font-size: 1.5rem;
-    height: 3.25rem;
-    justify-content: center;
-    margin-bottom: 1rem;
-    width: 3.25rem;
+    font-family: "Space Mono", "Courier New", monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
 }
 
-.nb-step {
+.rd-h1 {
+    font-size: clamp(2.5rem, 4.2vw + 1rem, 3.75rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin-bottom: 1.25rem;
+}
+
+.rd-lead {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin-bottom: 1.75rem;
+    max-width: 42ch;
+}
+
+.rd-fineprint {
+    font-size: 0.85rem;
+    margin-top: 1rem;
+    opacity: 0.62;
+}
+
+/* the corrected essay sheet */
+.corrected-sheet {
     background: var(--nb-white);
-    border: var(--nb-border) solid var(--nb-ink);
-    border-radius: var(--nb-radius);
-    box-shadow: 5px 5px 0 var(--nb-ink);
-    height: 100%;
-    padding: 1.5rem;
+    border: var(--nb-border-lg) solid var(--nb-ink);
+    border-radius: 6px;
+    box-shadow: 10px 10px 0 var(--nb-ink);
+    margin-inline: auto;
+    max-width: 27rem;
+    padding: 2.25rem 2rem 2.75rem;
+    position: relative;
+    transform: rotate(-1.3deg);
+}
+
+.corrected-sheet__ruled {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 1.85rem,
+        rgba(17, 17, 17, 0.14) 1.85rem,
+        rgba(17, 17, 17, 0.14) calc(1.85rem + 1px)
+    );
+}
+
+.corrected-sheet__ruled p {
+    font-size: 1rem;
+    line-height: 1.85rem;
+    margin: 0;
+}
+
+.corrected-sheet__fade {
+    opacity: 0.32;
+}
+
+.rd-mark {
     position: relative;
 }
 
-.nb-step-number {
+.rd-mark--circle::after {
+    border: 2.5px solid var(--nb-red);
+    border-radius: 42% 58% 61% 39% / 57% 44% 56% 43%;
+    content: "";
+    inset: -0.5rem -0.7rem;
+    pointer-events: none;
+    position: absolute;
+    transform: rotate(-2deg);
+}
+
+.rd-mark--underline {
+    text-decoration: underline wavy var(--nb-red);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+}
+
+.margin-note {
+    color: var(--nb-red);
+    font-family: "Caveat", cursive;
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 1.1;
+    position: absolute;
+    right: 0.6rem;
+    top: 6.6rem;
+    transform: rotate(4deg);
+    width: 7.5rem;
+}
+
+.margin-note::before {
+    background: var(--nb-red);
+    content: "";
+    height: 1.5px;
+    left: -0.9rem;
+    position: absolute;
+    top: 0.6rem;
+    width: 0.7rem;
+}
+
+.grade-stamp {
     align-items: center;
-    background: var(--nb-ink);
+    background: var(--nb-paper);
+    border: 3px solid var(--nb-red);
     border-radius: 50%;
-    color: var(--nb-yellow);
+    bottom: -1.35rem;
+    color: var(--nb-red);
     display: flex;
-    font-weight: 900;
-    height: 2.5rem;
+    flex-direction: column;
+    font-family: "Space Mono", "Courier New", monospace;
+    height: 5.5rem;
     justify-content: center;
-    margin-bottom: 0.75rem;
-    width: 2.5rem;
+    left: -1.1rem;
+    position: absolute;
+    transform: rotate(-10deg);
+    width: 5.5rem;
+    animation: rd-stamp-down 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) 0.4s both;
 }
 
-.nb-cta-band {
-    background: var(--nb-ink);
-    border-top: var(--nb-border-lg) solid var(--nb-ink);
-    border-bottom: var(--nb-border-lg) solid var(--nb-ink);
-    color: var(--nb-white);
+.grade-stamp__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
 }
 
-.nb-marquee {
-    background: var(--nb-ink);
-    border-bottom: var(--nb-border-lg) solid var(--nb-ink);
-    color: var(--nb-yellow);
-    font-weight: 800;
-    overflow: hidden;
-    text-transform: uppercase;
-    white-space: nowrap;
+.grade-stamp__of {
+    font-size: 0.65rem;
+    font-weight: 700;
 }
 
-.nb-marquee-track {
-    animation: nb-scroll 22s linear infinite;
-    display: inline-block;
-    padding-left: 100%;
-}
-
-@keyframes nb-scroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
+@keyframes rd-stamp-down {
+    0% { opacity: 0; transform: scale(2.3) rotate(-20deg); }
+    70% { opacity: 1; transform: scale(0.92) rotate(-8deg); }
+    100% { opacity: 1; transform: scale(1) rotate(-10deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nb-marquee-track {
-        animation: none;
-        padding-left: 1rem;
-    }
+    .grade-stamp { animation: none; }
 }
 
-.nb-blob {
-    background: var(--nb-yellow);
+/* section rhythm + headings */
+.rd-section {
+    padding-block: 4.5rem;
+}
+
+.rd-h2 {
+    font-size: clamp(1.75rem, 2.6vw + 0.5rem, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 0;
+    max-width: 24ch;
+}
+
+/* how it works — a perforated exam-booklet strip */
+.rd-steps {
+    display: grid;
+    gap: 2.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 3rem;
+    position: relative;
+}
+
+.rd-steps::before {
+    border-top: 2px dashed rgba(17, 17, 17, 0.28);
+    content: "";
+    left: 8%;
+    position: absolute;
+    right: 8%;
+    top: 1.75rem;
+}
+
+.rd-step {
+    position: relative;
+}
+
+.rd-step__num {
+    align-items: center;
+    border: 2.5px solid var(--rd-red-text);
+    border-radius: 42% 58% 61% 39% / 57% 44% 56% 43%;
+    color: var(--rd-red-text);
+    display: inline-flex;
+    font-family: "Space Mono", "Courier New", monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    height: 3.5rem;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    width: 3.5rem;
+    background: var(--nb-paper);
+}
+
+.rd-step:nth-child(2) .rd-step__num { transform: rotate(4deg); }
+.rd-step:nth-child(3) .rd-step__num { transform: rotate(-5deg); }
+
+.rd-step h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.rd-step p {
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.82;
+}
+
+/* aluno / professor — two ruled documents side by side */
+.rd-panels {
     border: var(--nb-border-lg) solid var(--nb-ink);
-    border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
-    box-shadow: 8px 8px 0 var(--nb-ink);
+    border-radius: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 3rem;
+    overflow: hidden;
+}
+
+.rd-panel {
+    padding: 2.5rem 2.25rem;
+}
+
+.rd-panel--aluno {
+    background:
+        radial-gradient(circle at 4px 4px, rgba(13, 13, 13, 0.08) 2px, transparent 2px)
+        0 0 / 26px 26px,
+        var(--nb-paper);
+    border-right: var(--nb-border-lg) solid var(--nb-ink);
+}
+
+.rd-panel--professor {
+    background:
+        radial-gradient(circle at 4px 4px, rgba(13, 13, 13, 0.08) 2px, transparent 2px)
+        0 0 / 26px 26px,
+        var(--nb-paper);
+}
+
+.rd-panel h3 {
+    align-items: center;
+    display: flex;
+    font-size: 1.3rem;
+    font-weight: 800;
+    gap: 0.6rem;
+    margin-bottom: 1.4rem;
+}
+
+.rd-panel--professor h3 {
+    color: var(--nb-blue);
+}
+
+.rd-panel ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rd-panel li {
+    line-height: 1.55;
+    padding-left: 1.6rem;
+    position: relative;
+}
+
+.rd-panel li::before {
+    color: var(--rd-red-text);
+    content: "✓";
+    font-weight: 700;
+    left: 0;
+    position: absolute;
+}
+
+.rd-panel--professor li::before {
+    color: var(--nb-blue);
+}
+
+/* rubric ledger */
+.rd-ledger {
+    margin-top: 3rem;
+    max-width: 42rem;
+}
+
+.rd-ledger__row {
+    align-items: baseline;
+    border-bottom: 2px dashed rgba(17, 17, 17, 0.25);
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+}
+
+.rd-ledger__row:first-child { padding-top: 0; }
+.rd-ledger__row:last-child { border-bottom: 0; }
+
+.rd-ledger__index {
+    color: var(--rd-red-text);
+    flex: 0 0 auto;
+    font-family: "Space Mono", "Courier New", monospace;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.rd-ledger__row h3 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+}
+
+.rd-ledger__row p {
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.82;
+}
+
+/* closing band */
+.rd-cta {
+    background: var(--nb-ink);
+    border-bottom: var(--nb-border-lg) solid var(--nb-ink);
+    border-top: var(--nb-border-lg) solid var(--nb-ink);
+    color: var(--nb-paper);
+    padding-block: 5rem;
+    text-align: center;
+}
+
+.rd-cta h2 {
+    color: var(--nb-white);
+    font-size: clamp(1.75rem, 2.6vw + 0.5rem, 2.5rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.rd-cta p {
+    margin-bottom: 2rem;
+    margin-inline: auto;
+    max-width: 40ch;
+    opacity: 0.85;
+}
+
+.rd-cta .btn:hover {
+    transform: translate(-2px, -2px) rotate(-1.5deg);
+}
+
+@media (max-width: 767.98px) {
+    .rd-steps {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .rd-steps::before {
+        display: none;
+    }
+
+    .rd-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .rd-panel--aluno {
+        border-right: 0;
+        border-bottom: var(--nb-border-lg) solid var(--nb-ink);
+    }
+
+    .corrected-sheet {
+        max-width: 22rem;
+    }
+
+    .margin-note {
+        font-size: 1.3rem;
+        top: 5.8rem;
+        width: 6rem;
+    }
+
+    .grade-stamp {
+        height: 4.75rem;
+        left: -0.75rem;
+        width: 4.75rem;
+    }
+
+    .grade-stamp__value { font-size: 1.25rem; }
 }
 
 /* --------------------------------------------------------------------
@@ -573,6 +873,69 @@ textarea.form-control {
 .nb-redacao-row:hover {
     box-shadow: 7px 7px 0 var(--nb-ink);
     transform: translate(-2px, -2px);
+}
+
+/* Paginação: cada página é um botão solto, no mesmo estilo dos .btn */
+.nb-pagination {
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.nb-pagination .page-item .page-link {
+    align-items: center;
+    background: var(--nb-white);
+    border: var(--nb-border) solid var(--nb-ink) !important;
+    border-radius: 10px !important;
+    box-shadow: 4px 4px 0 var(--nb-ink);
+    color: var(--nb-ink);
+    display: inline-flex;
+    font-weight: 800;
+    justify-content: center;
+    margin: 0;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 0.85rem;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.nb-pagination .page-item .page-link:hover,
+.nb-pagination .page-item .page-link:focus-visible {
+    background: var(--nb-yellow);
+    box-shadow: 6px 6px 0 var(--nb-ink);
+    color: var(--nb-ink);
+    transform: translate(-2px, -2px);
+}
+
+.nb-pagination .page-item .page-link:active {
+    box-shadow: 1px 1px 0 var(--nb-ink);
+    transform: translate(3px, 3px);
+}
+
+.nb-pagination .page-item .page-link:focus-visible {
+    outline: 3px solid var(--nb-blue);
+    outline-offset: 3px;
+}
+
+.nb-pagination .page-item.active .page-link {
+    background: var(--nb-blue);
+    color: var(--nb-white);
+}
+
+.nb-pagination .page-item.disabled .page-link {
+    background: var(--nb-paper);
+    box-shadow: none;
+    color: var(--nb-ink);
+    opacity: 0.45;
+    transform: none;
+}
+
+/* reticências ("…") entre os números: texto simples, sem caixa */
+.nb-pagination .page-item.disabled .page-link:not([aria-hidden]) {
+    background: transparent;
+    border-color: transparent !important;
+    min-width: 0;
+    opacity: 1;
+    padding: 0 0.15rem;
 }
 
 .nb-empty-state {
@@ -675,6 +1038,11 @@ textarea.form-control {
     background: var(--nb-ink);
     border-top: var(--nb-border-lg) solid var(--nb-ink);
     color: var(--nb-paper);
+}
+
+.footer-mark {
+    height: 1.75rem;
+    width: 1.75rem;
 }
 
 /* --------------------------------------------------------------------

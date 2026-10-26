@@ -149,7 +149,7 @@ class CorrigirRedacaoForm(forms.Form):
         )
 
     def initial_a_partir_de(self, redacao):
-        resultado = redacao.resultado_json or {}
+        resultado = redacao.resultado_final or {}
         inicial = {"comentario_professor": redacao.comentario_professor}
 
         if resultado.get("avaliacao_possivel"):

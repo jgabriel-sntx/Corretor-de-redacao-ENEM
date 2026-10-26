@@ -29,8 +29,8 @@
                                     <h2 class="h5 fw-bold mb-1">{{ redacao.tema }}</h2>
                                     <span class="badge text-bg-secondary">{{ redacao.get_status_display }}</span>
                                     <span class="text-secondary small ms-2">Enviada em {{ redacao.criada_em|date:"d/m/Y H:i" }}</span>
-                                    {% if redacao.resultado_json.avaliacao_possivel %}
-                                        <span class="text-secondary small ms-2">Nota: {{ redacao.resultado_json.nota_total }}/1000</span>
+                                    {% if redacao.resultado_final.avaliacao_possivel %}
+                                        <span class="text-secondary small ms-2">Nota: {{ redacao.resultado_final.nota_total }}/1000</span>
                                     {% endif %}
                                 </div>
                             </div>
