@@ -1,12 +1,12 @@
 import json
 import logging
 import os
-import re
 import time
 from typing import Any
 
 import httpx
 
+from . import configuracao
 from .prompt_builder import (
     CHAVES_COMPETENCIA,
     CHAVES_EVIDENCIA,
@@ -58,11 +58,6 @@ STATUS_TRANSITORIOS = {
     504,
     529,
 }
-
-PADRAO_MODELO = re.compile(
-    r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$"
-)
-
 
 # ============================================================================
 # EXCEÇÕES
@@ -925,190 +920,22 @@ def _ler_configuracao() -> tuple[
     float,
     int,
 ]:
+    """Só a chave vem do admin; o restante usa os padrões do código."""
 
-    chave_api = os.getenv(
-        "GEMINI_API_KEY",
-        "",
-    ).strip()
-
-    url_configurada = os.getenv(
-        "GEMINI_API_URL",
-        "",
-    ).strip()
-
-    modelo = os.getenv(
-        "GEMINI_MODEL",
-        MODELO_PADRAO,
-    ).strip()
-
-    # ------------------------------------------------------------------------
-    # CHAVE
-    # ------------------------------------------------------------------------
+    chave_api = configuracao.valor("GEMINI_API_KEY", "").strip()
 
     if not chave_api:
-
         raise AIConfigurationError(
-            "GEMINI_API_KEY não está configurada."
-        )
-
-    # ------------------------------------------------------------------------
-    # URL
-    # ------------------------------------------------------------------------
-
-    if url_configurada:
-
-        url = _normalizar_url_gemini(
-            url_configurada
-        )
-
-    else:
-
-        url = URL_PADRAO
-
-    if not url.startswith(
-        "https://"
-    ):
-
-        raise AIConfigurationError(
-            "GEMINI_API_URL deve usar HTTPS."
-        )
-
-    # ------------------------------------------------------------------------
-    # MODELO
-    # ------------------------------------------------------------------------
-
-    if (
-        not modelo
-        or not PADRAO_MODELO.fullmatch(modelo)
-    ):
-
-        raise AIConfigurationError(
-            "GEMINI_MODEL possui um valor inválido."
-        )
-
-    # ------------------------------------------------------------------------
-    # TIMEOUT
-    # ------------------------------------------------------------------------
-
-    try:
-
-        timeout = float(
-            os.getenv(
-                "GEMINI_TIMEOUT_SECONDS",
-                TIMEOUT_PADRAO,
-            )
-        )
-
-    except ValueError as erro:
-
-        raise AIConfigurationError(
-            "GEMINI_TIMEOUT_SECONDS possui "
-            "valor inválido."
-        ) from erro
-
-    # ------------------------------------------------------------------------
-    # TOKENS
-    # ------------------------------------------------------------------------
-
-    try:
-
-        max_tokens = int(
-            os.getenv(
-                "GEMINI_MAX_OUTPUT_TOKENS",
-                MAX_OUTPUT_TOKENS_PADRAO,
-            )
-        )
-
-    except ValueError as erro:
-
-        raise AIConfigurationError(
-            "GEMINI_MAX_OUTPUT_TOKENS possui "
-            "valor inválido."
-        ) from erro
-
-    # ------------------------------------------------------------------------
-    # VALIDAÇÕES
-    # ------------------------------------------------------------------------
-
-    if timeout <= 0:
-
-        raise AIConfigurationError(
-            "O timeout do Gemini deve ser positivo."
-        )
-
-    if not 500 <= max_tokens <= 65_536:
-
-        raise AIConfigurationError(
-            "GEMINI_MAX_OUTPUT_TOKENS deve ficar "
-            "entre 500 e 65536."
+            "A chave da API do Gemini não está configurada no admin "
+            "(Redações > Configuração das APIs)."
         )
 
     return (
         chave_api,
-        url,
-        modelo,
-        timeout,
-        max_tokens,
-    )
-
-
-# ============================================================================
-# NORMALIZAÇÃO DA URL
-# ============================================================================
-
-
-def _normalizar_url_gemini(
-    url: str,
-) -> str:
-
-    url = url.rstrip("/")
-
-    # Caso o .env contenha:
-    #
-    # https://generativelanguage.googleapis.com/v1beta
-    #
-    # transforma em:
-    #
-    # https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
-
-    if url.endswith(
-        "/v1beta"
-    ):
-
-        return (
-            f"{url}/openai/chat/completions"
-        )
-
-    # Caso o .env contenha:
-    #
-    # https://generativelanguage.googleapis.com/v1beta/openai
-    #
-    # transforma em:
-    #
-    # https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
-
-    if url.endswith(
-        "/v1beta/openai"
-    ):
-
-        return (
-            f"{url}/chat/completions"
-        )
-
-    # Se já for o endpoint completo,
-    # não altera.
-
-    if url.endswith(
-        "/chat/completions"
-    ):
-
-        return url
-
-    # Caso seja uma URL desconhecida,
-    # adiciona o endpoint esperado.
-
-    return (
-        f"{url}/openai/chat/completions"
+        URL_PADRAO,
+        MODELO_PADRAO,
+        TIMEOUT_PADRAO,
+        MAX_OUTPUT_TOKENS_PADRAO,
     )
 
 

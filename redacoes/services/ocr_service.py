@@ -4,6 +4,8 @@ from typing import Any
 
 import httpx
 
+from . import configuracao
+
 
 logger = logging.getLogger(__name__)
 
@@ -84,28 +86,16 @@ def extrair_texto_documento(arquivo_imagem) -> str:
 
 
 def _ler_configuracao() -> tuple[str, str, str, str, float]:
-    chave_api = os.getenv("OCR_SPACE_API_KEY", "").strip()
-    url = os.getenv("OCR_SPACE_API_URL", URL_PADRAO).strip()
-    engine = os.getenv("OCR_SPACE_ENGINE", ENGINE_PADRAO).strip()
-    idioma = os.getenv("OCR_SPACE_LANGUAGE", IDIOMA_PADRAO).strip()
+    """Só a chave vem do admin; o restante usa os padrões do código."""
+    chave_api = configuracao.valor("OCR_SPACE_API_KEY", "").strip()
 
-    if not chave_api or chave_api == "troque-pela-chave-do-ocr-space":
-        raise OCRConfigurationError("OCR_SPACE_API_KEY não está configurada.")
-    if not url.startswith("https://"):
-        raise OCRConfigurationError("OCR_SPACE_API_URL deve usar HTTPS.")
-    if engine not in {"1", "2", "3"}:
-        raise OCRConfigurationError("OCR_SPACE_ENGINE deve ser 1, 2 ou 3.")
-
-    try:
-        timeout = float(os.getenv("OCR_SPACE_TIMEOUT_SECONDS", TIMEOUT_PADRAO))
-    except ValueError as erro:
+    if not chave_api:
         raise OCRConfigurationError(
-            "OCR_SPACE_TIMEOUT_SECONDS possui valor inválido."
-        ) from erro
-    if timeout <= 0:
-        raise OCRConfigurationError("O timeout do OCR deve ser positivo.")
+            "A chave da API do OCR.space não está configurada no admin "
+            "(Redações > Configuração das APIs)."
+        )
 
-    return chave_api, url, engine, idioma, timeout
+    return chave_api, URL_PADRAO, ENGINE_PADRAO, IDIOMA_PADRAO, TIMEOUT_PADRAO
 
 
 def _ler_imagem(arquivo_imagem) -> bytes:

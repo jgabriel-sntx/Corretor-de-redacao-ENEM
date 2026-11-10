@@ -24,7 +24,7 @@
             <span class="nb-code-badge">{{ turma.codigo }}</span>
         </div>
 
-        <h2 class="h4 fw-bold mb-3">Alunos ({{ alunos.count }})</h2>
+        <h2 class="h4 fw-bold mb-3">Alunos ({{ total }})</h2>
 
         {% if alunos %}
             <div class="d-flex flex-column gap-3">
@@ -40,6 +40,7 @@
                     </div>
                 {% endfor %}
             </div>
+            {% include "includes/paginacao.html" with rotulo="alunos" %}
         {% else %}
             <div class="nb-empty-state p-5 text-center">
                 <p class="mb-0 text-secondary">Nenhum aluno usou este código de turma ainda.</p>

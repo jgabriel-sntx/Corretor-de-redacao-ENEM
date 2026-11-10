@@ -6,6 +6,20 @@ from django.db import models
 from .validators import validar_tamanho_imagem
 
 
+class ConfiguracaoAPI(models.Model):
+    """Chaves das APIs externas, editáveis no admin (registro único)."""
+
+    gemini_api_key = models.CharField("chave da API do Gemini", max_length=255, blank=True)
+    ocr_api_key = models.CharField("chave da API do OCR.space", max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "configuração das APIs"
+        verbose_name_plural = "configuração das APIs"
+
+    def __str__(self):
+        return "Configuração das APIs"
+
+
 class Redacao(models.Model):
     class Status(models.TextChoices):
         ENVIADA = "enviada", "Enviada"

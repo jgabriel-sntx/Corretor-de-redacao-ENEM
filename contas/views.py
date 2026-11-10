@@ -2,6 +2,7 @@ from allauth.account.models import EmailAddress
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
@@ -14,6 +15,23 @@ from .forms import (
     TurmaForm,
 )
 from .models import Turma, Usuario
+
+TURMAS_POR_PAGINA = 12
+ALUNOS_POR_PAGINA = 15
+REDACOES_POR_PAGINA = 10
+
+
+def _paginar(request, itens, por_pagina):
+    """Contexto de paginação para o include templates/includes/paginacao.html."""
+    paginador = Paginator(itens, por_pagina)
+    pagina = paginador.get_page(request.GET.get("pagina"))
+    return {
+        "pagina": pagina,
+        "intervalo_paginas": paginador.get_elided_page_range(
+            pagina.number, on_each_side=2, on_ends=1
+        ),
+        "total": paginador.count,
+    }
 
 
 @require_http_methods(["GET"])
@@ -131,8 +149,12 @@ def conta_editar_email(request):
 
 @professor_required
 def professor_home(request):
-    turmas = request.user.turmas.all()
-    return render(request, "contas/professor_home.html", {"turmas": turmas})
+    contexto = _paginar(request, request.user.turmas.all(), TURMAS_POR_PAGINA)
+    return render(
+        request,
+        "contas/professor_home.html",
+        {**contexto, "turmas": contexto["pagina"]},
+    )
 
 
 @professor_required
@@ -158,8 +180,14 @@ def _turma_do_professor(request, pk):
 @professor_required
 def turma_detalhe(request, pk):
     turma = _turma_do_professor(request, pk)
-    alunos = turma.alunos.all()
-    return render(request, "contas/turma_detalhe.html", {"turma": turma, "alunos": alunos})
+    contexto = _paginar(
+        request, turma.alunos.order_by("first_name", "email"), ALUNOS_POR_PAGINA
+    )
+    return render(
+        request,
+        "contas/turma_detalhe.html",
+        {"turma": turma, **contexto, "alunos": contexto["pagina"]},
+    )
 
 
 @professor_required
@@ -185,7 +213,9 @@ def aluno_historico(request, pk):
     aluno = get_object_or_404(
         Usuario, pk=pk, tipo=Usuario.Tipo.ALUNO, turma__professor=request.user
     )
-    redacoes = aluno.redacoes.all()
+    contexto = _paginar(request, aluno.redacoes.all(), REDACOES_POR_PAGINA)
     return render(
-        request, "contas/aluno_historico.html", {"aluno": aluno, "redacoes": redacoes}
+        request,
+        "contas/aluno_historico.html",
+        {"aluno": aluno, **contexto, "redacoes": contexto["pagina"]},
     )

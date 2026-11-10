@@ -39,6 +39,7 @@
                     </div>
                 {% endfor %}
             </div>
+            {% include "includes/paginacao.html" with rotulo="redações" %}
         {% else %}
             <div class="nb-empty-state p-5 text-center">
                 <p class="mb-0 text-secondary">Este aluno ainda não enviou nenhuma redação.</p>

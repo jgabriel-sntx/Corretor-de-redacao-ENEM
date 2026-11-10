@@ -26,6 +26,7 @@
                     </div>
                 {% endfor %}
             </div>
+            {% include "includes/paginacao.html" with rotulo="turmas" %}
         {% else %}
             <div class="nb-empty-state p-5 text-center">
                 <h2 class="h4 fw-bold mb-2">Você ainda não criou nenhuma turma</h2>
