@@ -139,6 +139,50 @@ class EditarEmailForm(forms.Form):
         return email
 
 
+class ApisForm(forms.ModelForm):
+    """Chaves de API do professor. Em branco mantém a chave atual."""
+
+    CAMPOS_CHAVE = ("gemini_api_key", "ocr_api_key")
+
+    gemini_api_key = forms.CharField(
+        label="Chave da API do Gemini",
+        required=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "off"}),
+        help_text="Corrige as redações dos seus alunos. Deixe em branco para manter a atual.",
+    )
+    ocr_api_key = forms.CharField(
+        label="Chave da API do OCR.space",
+        required=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "off"}),
+        help_text="Lê redações enviadas como imagem. Deixe em branco para manter a atual.",
+    )
+    remover_gemini_api_key = forms.BooleanField(
+        label="Remover a chave do Gemini", required=False
+    )
+    remover_ocr_api_key = forms.BooleanField(
+        label="Remover a chave do OCR.space", required=False
+    )
+
+    class Meta:
+        model = Usuario
+        fields = ["gemini_api_key", "ocr_api_key"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _aplicar_classes_bootstrap(self)
+
+    def clean(self):
+        dados = super().clean()
+        for campo in self.CAMPOS_CHAVE:
+            if dados.get(f"remover_{campo}"):
+                dados[campo] = ""
+            else:
+                dados[campo] = (dados.get(campo) or "").strip() or getattr(
+                    self.instance, campo
+                )
+        return dados
+
+
 class TurmaForm(forms.ModelForm):
     class Meta:
         model = Turma

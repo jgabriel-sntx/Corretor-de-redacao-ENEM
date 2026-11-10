@@ -70,12 +70,12 @@ http://127.0.0.1:8000/admin/
 
 ### Configurar as APIs
 
-As chaves e os parâmetros das duas APIs ficam no admin, em **Redações > Configuração das APIs**:
+Cada **professor** cadastra as próprias chaves em **Conta, seção APIs**:
 
 - **Gemini** (correção): chave da API.
 - **OCR.space** (leitura de imagens): chave da API.
 
-Sem a chave, a correção e o OCR não funcionam. Modelo, endereço, timeouts e demais parâmetros ficam no código (`redacoes/services/ai_service.py` e `ocr_service.py`). A chave nunca é exibida depois de salva; para trocá-la, digite a nova; para apagá-la, marque "Remover a chave". Alterações valem na hora, sem reiniciar o servidor.
+As redações de um aluno usam as chaves do professor da turma dele. Sem a chave, a correção e o OCR não funcionam (o aluno vê um aviso para pedir ao professor). Ao criar a conta, o professor recebe um aviso que leva direto a essa seção. Modelo, endereço, timeouts e demais parâmetros ficam no código (`redacoes/services/ai_service.py` e `ocr_service.py`). A chave nunca é exibida depois de salva; para trocá-la, digite a nova; para apagá-la, marque "Remover a chave".
 
 ## Observações
 

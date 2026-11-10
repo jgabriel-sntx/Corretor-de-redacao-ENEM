@@ -1,5 +1,6 @@
 # Ambiente virtual e variáveis locais
 .venv/
+venv/
 .env
 .claude/
 

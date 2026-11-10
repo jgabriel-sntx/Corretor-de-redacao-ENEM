@@ -33,6 +33,7 @@
                 <a href="{% url 'account_change_password' %}" class="btn btn-outline-primary btn-sm">Alterar senha</a>
             </div>
 
+
             <div class="nb-account-row">
                 <div>
                     <span class="text-secondary small d-block text-uppercase fw-bold">Perfil</span>
@@ -43,6 +44,43 @@
                 </div>
             </div>
         </div>
+
+        {% if form %}
+        <section id="apis" class="mb-4" aria-labelledby="apis-titulo">
+            <h2 id="apis-titulo" class="h5 fw-bold mb-1">APIs</h2>
+            <p class="text-secondary small mb-3">
+                Chaves usadas nas redações dos alunos das suas turmas. Ficam ocultas depois de salvas.
+            </p>
+            <div class="card review-card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'contas:conta' %}#apis" novalidate>
+                        {% csrf_token %}
+                        {% for campo in form %}
+                            {% if campo.field.widget.input_type == "checkbox" %}
+                                <div class="form-check mb-4">
+                                    {{ campo }}
+                                    <label for="{{ campo.id_for_label }}" class="form-check-label">{{ campo.label }}</label>
+                                </div>
+                            {% else %}
+                                <div class="mb-2">
+                                    <label for="{{ campo.id_for_label }}" class="form-label fw-semibold">{{ campo.label }}</label>
+                                    {{ campo }}
+                                    {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+                                    {% for error in campo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                {% if campo.name == "gemini_api_key" %}
+                                    <p class="small mb-3">Atual: {% if user.gemini_api_key %}<span class="badge text-bg-success">configurada</span> termina em …{{ user.gemini_api_key|slice:"-4:" }}{% else %}<span class="badge text-bg-warning">pendente</span>{% endif %}</p>
+                                {% elif campo.name == "ocr_api_key" %}
+                                    <p class="small mb-3">Atual: {% if user.ocr_api_key %}<span class="badge text-bg-success">configurada</span> termina em …{{ user.ocr_api_key|slice:"-4:" }}{% else %}<span class="badge text-bg-warning">pendente</span>{% endif %}</p>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        <button type="submit" class="btn btn-primary">Salvar chaves</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
         <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}

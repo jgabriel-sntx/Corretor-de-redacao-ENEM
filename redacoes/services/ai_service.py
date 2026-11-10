@@ -6,7 +6,6 @@ from typing import Any
 
 import httpx
 
-from . import configuracao
 from .prompt_builder import (
     CHAVES_COMPETENCIA,
     CHAVES_EVIDENCIA,
@@ -112,15 +111,18 @@ class AIResponseError(AIServiceError):
 def avaliar_redacao(
     tema: str,
     redacao: str,
+    chave_api: str = "",
 ) -> dict[str, Any]:
     """
     Avalia uma redação usando o Gemini e valida o JSON localmente.
+
+    `chave_api` é a chave do professor da turma do aluno.
     """
 
     if len(redacao.split()) < MIN_PALAVRAS:
         return _resultado_texto_insuficiente()
 
-    chave_api, url, modelo, timeout, max_tokens = _ler_configuracao()
+    chave_api, url, modelo, timeout, max_tokens = _ler_configuracao(chave_api)
 
     try:
         prompt = construir_prompt_correcao(
@@ -913,21 +915,21 @@ def _manter_chaves(
 # ============================================================================
 
 
-def _ler_configuracao() -> tuple[
+def _ler_configuracao(chave_api: str) -> tuple[
     str,
     str,
     str,
     float,
     int,
 ]:
-    """Só a chave vem do admin; o restante usa os padrões do código."""
+    """Só a chave vem do professor; o restante usa os padrões do código."""
 
-    chave_api = configuracao.valor("GEMINI_API_KEY", "").strip()
+    chave_api = (chave_api or "").strip()
 
     if not chave_api:
         raise AIConfigurationError(
-            "A chave da API do Gemini não está configurada no admin "
-            "(Redações > Configuração das APIs)."
+            "A chave da API do Gemini não está configurada. Peça ao seu "
+            "professor para cadastrá-la em Conta > APIs."
         )
 
     return (

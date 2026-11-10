@@ -4,10 +4,13 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.html import format_html
 from django.views.decorators.http import require_http_methods
 
 from .decorators import professor_required
 from .forms import (
+    ApisForm,
     CadastroAlunoForm,
     CadastroProfessorForm,
     EditarEmailForm,
@@ -91,6 +94,15 @@ def cadastro_professor(request):
         if form.is_valid():
             _criar_usuario(form, Usuario.Tipo.PROFESSOR, request)
             messages.success(request, "Cadastro realizado com sucesso. Bem-vindo(a)!")
+            messages.warning(
+                request,
+                format_html(
+                    "Antes de começar, cadastre suas chaves de API (Gemini e OCR.space): "
+                    "sem elas seus alunos não conseguem enviar redações para correção. "
+                    '<a href="{}" class="alert-link">Ir para Conta &rsaquo; APIs</a>',
+                    reverse("contas:conta") + "#apis",
+                ),
+            )
             return redirect("contas:pos_login")
     else:
         form = CadastroProfessorForm()
@@ -107,7 +119,17 @@ def pos_login(request):
 
 @login_required
 def conta(request):
-    return render(request, "contas/conta.html")
+    form = None
+    if request.user.is_professor:
+        if request.method == "POST":
+            form = ApisForm(request.POST, instance=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Chaves de API atualizadas com sucesso.")
+                return redirect("contas:conta")
+        else:
+            form = ApisForm(instance=request.user)
+    return render(request, "contas/conta.html", {"form": form})
 
 
 @login_required

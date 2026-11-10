@@ -54,6 +54,9 @@ class Usuario(AbstractUser):
         on_delete=models.SET_NULL,
         related_name="alunos",
     )
+    # Chaves de API do professor, usadas nas redações dos alunos da sua turma.
+    gemini_api_key = models.CharField("chave da API do Gemini", max_length=255, blank=True)
+    ocr_api_key = models.CharField("chave da API do OCR.space", max_length=255, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

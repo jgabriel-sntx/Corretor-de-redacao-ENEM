@@ -9,6 +9,7 @@ from contas.decorators import aluno_required, professor_required
 
 from .forms import CorrigirRedacaoForm, RedacaoForm, RevisaoTranscricaoForm
 from .models import Redacao
+from .services import configuracao
 from .services.ai_service import AIServiceError, avaliar_redacao
 from .services.ocr_service import OCRServiceError, extrair_texto_documento
 
@@ -192,7 +193,9 @@ def _processar_ocr(request, redacao: Redacao) -> None:
     redacao.save(update_fields=["status", "atualizada_em"])
 
     try:
-        redacao.texto_transcrito = extrair_texto_documento(redacao.imagem)
+        redacao.texto_transcrito = extrair_texto_documento(
+            redacao.imagem, configuracao.chave_ocr(redacao.aluno)
+        )
     except OCRServiceError as erro:
         redacao.status = Redacao.Status.ERRO
         messages.error(request, str(erro))
@@ -216,7 +219,11 @@ def _salvar_e_avaliar(request, redacao: Redacao) -> bool:
     )
 
     try:
-        resultado = avaliar_redacao(redacao.tema, redacao.texto_revisado)
+        resultado = avaliar_redacao(
+            redacao.tema,
+            redacao.texto_revisado,
+            configuracao.chave_gemini(redacao.aluno),
+        )
     except AIServiceError as erro:
         messages.error(
             request,

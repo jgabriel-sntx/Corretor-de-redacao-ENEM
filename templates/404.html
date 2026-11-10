@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Página não encontrada | Redaí{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container text-center" style="max-width: 560px;">
+        <span class="nb-tag mb-3">Erro 404</span>
+        <h1 class="display-5 fw-bold mt-2 mb-3">Página não encontrada</h1>
+        <p class="text-secondary mb-4">
+            O endereço que você tentou acessar não existe ou foi movido.
+        </p>
+        <a href="{% url 'redacoes:landing' %}" class="btn btn-primary">Voltar ao início</a>
+    </div>
+</section>
+{% endblock %}

@@ -4,8 +4,6 @@ from typing import Any
 
 import httpx
 
-from . import configuracao
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +37,15 @@ class OCRResponseError(OCRServiceError):
     """O OCR respondeu com conteúdo inválido ou informou falha."""
 
 
-def extrair_texto_documento(arquivo_imagem) -> str:
-    """Envia uma imagem ao OCR.space e devolve apenas o texto reconhecido."""
+def extrair_texto_documento(arquivo_imagem, chave_api: str = "") -> str:
+    """Envia uma imagem ao OCR.space e devolve apenas o texto reconhecido.
+
+    `chave_api` é a chave do professor da turma do aluno.
+    """
     if not arquivo_imagem:
         raise ValueError("Uma imagem é obrigatória para executar o OCR.")
 
-    chave_api, url, engine, idioma, timeout = _ler_configuracao()
+    chave_api, url, engine, idioma, timeout = _ler_configuracao(chave_api)
     conteudo = _ler_imagem(arquivo_imagem)
     nome = getattr(arquivo_imagem, "name", "redacao.jpg")
     tipo = getattr(arquivo_imagem, "content_type", None) or "application/octet-stream"
@@ -85,14 +86,14 @@ def extrair_texto_documento(arquivo_imagem) -> str:
     return _extrair_texto_resposta(dados)
 
 
-def _ler_configuracao() -> tuple[str, str, str, str, float]:
-    """Só a chave vem do admin; o restante usa os padrões do código."""
-    chave_api = configuracao.valor("OCR_SPACE_API_KEY", "").strip()
+def _ler_configuracao(chave_api: str) -> tuple[str, str, str, str, float]:
+    """Só a chave vem do professor; o restante usa os padrões do código."""
+    chave_api = (chave_api or "").strip()
 
     if not chave_api:
         raise OCRConfigurationError(
-            "A chave da API do OCR.space não está configurada no admin "
-            "(Redações > Configuração das APIs)."
+            "A chave da API do OCR.space não está configurada. Peça ao seu "
+            "professor para cadastrá-la em Conta > APIs."
         )
 
     return chave_api, URL_PADRAO, ENGINE_PADRAO, IDIOMA_PADRAO, TIMEOUT_PADRAO

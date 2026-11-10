@@ -1,24 +1,16 @@
-from typing import Any
-
-# Nome da configuração -> campo de ConfiguracaoAPI (editável no admin).
-CAMPOS = {
-    "GEMINI_API_KEY": "gemini_api_key",
-    "OCR_SPACE_API_KEY": "ocr_api_key",
-}
+def professor_do_aluno(aluno):
+    """Professor dono da turma do aluno (ou None se ele não tem turma)."""
+    turma = getattr(aluno, "turma", None)
+    return turma.professor if turma else None
 
 
-def valor(nome: str, padrao: Any = "") -> Any:
-    """Chave definida no admin (Configuração das APIs); vazia usa o padrão."""
-    from django.db import DatabaseError
+def chave_gemini(aluno) -> str:
+    """Chave do Gemini cadastrada pelo professor da turma do aluno."""
+    professor = professor_do_aluno(aluno)
+    return (professor.gemini_api_key if professor else "").strip()
 
-    from redacoes.models import ConfiguracaoAPI
 
-    try:
-        configuracao = ConfiguracaoAPI.objects.first()
-    except DatabaseError:  # migração ainda não aplicada
-        configuracao = None
-
-    do_admin = getattr(configuracao, CAMPOS[nome], None) if configuracao else None
-    if do_admin not in (None, ""):
-        return str(do_admin).strip()
-    return padrao
+def chave_ocr(aluno) -> str:
+    """Chave do OCR.space cadastrada pelo professor da turma do aluno."""
+    professor = professor_do_aluno(aluno)
+    return (professor.ocr_api_key if professor else "").strip()
